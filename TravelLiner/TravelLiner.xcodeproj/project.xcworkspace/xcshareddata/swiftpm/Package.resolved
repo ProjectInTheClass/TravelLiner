@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "kakaomapssdk-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kakao-mapsSDK/KakaoMapsSDK-SPM.git",
+      "state" : {
+        "revision" : "b2c8fb3c232c0765eb1bb76ddc7faf01d4ab6756",
+        "version" : "2.8.5"
+      }
+    }
+  ],
+  "version" : 2
+}
