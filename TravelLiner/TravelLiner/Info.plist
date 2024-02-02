@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>KAKAO_APP_KEY</key>
+    <string>647ba337e488a972e037e69afd96c905</string>
+    <key>KAKAO_PHASE</key>
+    <string></string>
+    <key>UIBackgroundModes</key>
+    <array/>
+    <key>Rest_api_key</key>
+    <string>e3deba5fa346fe274ffa4882e7f65b6c</string>
+</dict>
+</plist>
