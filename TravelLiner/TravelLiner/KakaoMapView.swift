@@ -11,8 +11,10 @@ import KakaoMapsSDK
 struct KakaoMapView: UIViewRepresentable {
     @Binding var draw: Bool
     @Binding var tap: Bool
-    var position: MapPoint
-    var spot: String
+    @Binding var day: Int
+    @State var day_old: Int  = 1
+    //var positions: [MapPoint]
+    var travel: TravelModel
     
     func makeUIView(context: Context) -> KMViewContainer {
         let view: KMViewContainer = KMViewContainer()
@@ -28,8 +30,7 @@ struct KakaoMapView: UIViewRepresentable {
         if draw {
             context.coordinator.controller?.startEngine()
             context.coordinator.controller?.startRendering()
-            context.coordinator.position = self.position
-            context.coordinator.spot = self.spot
+            context.coordinator.positions = self.travel
             //let msg = context.coordinator.controller?.getStateDescMessage()
             //print("////////////////")
             //print(msg ?? "메세지")
@@ -37,10 +38,17 @@ struct KakaoMapView: UIViewRepresentable {
             context.coordinator.controller?.stopEngine()
             context.coordinator.controller?.stopRendering()
         }
+        if self.day != self.day_old {
+            context.coordinator.createPois(day: self.day)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.day_old = self.day
+            }
+            //self.day_old = self.day
+        }
     }
     
     func makeCoordinator() -> kakaoMapCoordinator {
-        return kakaoMapCoordinator(tap: $tap, spot: spot, position: position)
+        return kakaoMapCoordinator(tap: $tap, positions: self.travel, day: $day)
     }
     
     static func dismantleUIView(_ uiView: KMViewContainer, coordinator: kakaoMapCoordinator) {
@@ -60,17 +68,17 @@ struct KakaoMapView: UIViewRepresentable {
         override init() {
             first = true
             _auth = false
-            position = MapPoint(longitude: 126.942250, latitude: 33.458528)
+            positions = TravelModel(title: "", days: [], icon: "", start_date: Date())
             self._tap = .constant(false)
-            spot = ""
+            self._day = .constant(0)
             super.init()
         }
-        init(tap: Binding<Bool>, spot: String, position: MapPoint) {
+        init(tap: Binding<Bool>, positions: TravelModel, day: Binding<Int>) {
             first = true
             _auth = false
-            self.spot = spot
-            self.position = position
+            self.positions = positions
             self._tap = tap
+            self._day = day
         }
         
         func createLabelLayer() {
@@ -106,20 +114,32 @@ struct KakaoMapView: UIViewRepresentable {
             }
             
         
-            func createPois() {
-                let view = controller?.getView("mapview") as! KakaoMap
-                let manager = view.getLabelManager()
-                let layer = manager.getLabelLayer(layerID: "PoiLayer")
-                let poiOption = PoiOptions(styleID: "PerLevelStyle")
-                poiOption.rank = 0
-                poiOption.clickable = true
-                poiOption.addText(PoiText(text: self.spot, styleIndex: 0))
-                let poi1 = layer?.addPoi(option:poiOption, at: position)
-                let  _ = poi1?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
-                // Poi 개별 Badge추가. 즉, 아래에서 생성된 Poi는 Style에 빌트인되어있는 badge와, Poi가 개별적으로 가지고 있는 Badge를 갖게 된다.
-                //let badge = PoiBadge(badgeID: "noti", image: UIImage(systemName: "swift"), offset: CGPoint(x: 0, y: 0), zOrder: 1)
-                //poi1?.addBadge(badge)
-                poi1?.show()
+        func createPois(day: Int) {
+            let view = controller?.getView("mapview") as! KakaoMap
+            let manager = view.getLabelManager()
+            let layer = manager.getLabelLayer(layerID: "PoiLayer")
+            layer?.clearAllItems()
+            let poiOption = PoiOptions(styleID: "PerLevelStyle")
+            poiOption.rank = 0
+            poiOption.clickable = true
+            poiOption.addText(PoiText(text: "name", styleIndex: 0))
+            //var PoiArrays: [Poi] = []
+            print(day, "//////////////////////////")
+            for position in self.positions.days.filter({ $0.date == day }).first?.places ?? [] {
+                let poi = layer?.addPoi(option:poiOption, at: MapPoint(longitude: position.longitude, latitude: position.latitude))
+                poi?.changeTextAndStyle(texts: [PoiText(text: position.name, styleIndex: 0)], styleID: "PerLevelStyle")
+                    let  poi_event = poi?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
+                    poi?.show()
+                }
+//                ForEach(self.positions, id: \.self) { position in
+//                    let poi1 = layer?.addPoi(option:poiOption, at: position)
+//                    let  _ = poi1?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
+//                    // Poi 개별 Badge추가. 즉, 아래에서 생성된 Poi는 Style에 빌트인되어있는 badge와, Poi가 개별적으로 가지고 있는 Badge를 갖게 된다.
+//                    //let badge = PoiBadge(badgeID: "noti", image: UIImage(systemName: "swift"), offset: CGPoint(x: 0, y: 0), zOrder: 1)
+//                    //poi1?.addBadge(badge)
+//                    //poi1?.show()
+//                    
+//                }
                 //poi1?.showBadge(badgeID: "noti")
             }
         
@@ -161,7 +181,7 @@ struct KakaoMapView: UIViewRepresentable {
         }
         
         func addViews() {
-            let defaultPosition: MapPoint = self.position
+            let defaultPosition: MapPoint = self.positions.days.filter{$0.date == self.day}.first?.places.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)}.first ?? MapPoint(longitude: 126.942250, latitude: 33.458528)
             let mapviwInfo: MapviewInfo = MapviewInfo(viewName: "mapview", viewInfoName: "map", defaultPosition: defaultPosition, defaultLevel: 7)
             
             if controller?.addView(mapviwInfo) == Result.OK {
@@ -173,7 +193,7 @@ struct KakaoMapView: UIViewRepresentable {
             let mapView: KakaoMap? = controller?.getView("mapview") as? KakaoMap
             mapView?.viewRect = CGRect(origin: CGPoint.zero, size: size)
             if first {
-                let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.position, mapView: mapView!)
+                let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.positions.days.filter{$0.date == self.day}.first?.places.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)}.first ?? MapPoint(longitude: 126.942250, latitude: 33.458528), mapView: mapView!)
                 mapView?.moveCamera(cameraUpdate)
                 first = false
             }
@@ -190,18 +210,15 @@ struct KakaoMapView: UIViewRepresentable {
             print(controller?.getStateDescMessage() ?? "")
             createLabelLayer()
             createPoiStyle()
-            createPois()
+            createPois(day: 1)
         }
         
         var _auth: Bool
         var controller: KMController?
         var first: Bool
-        var position: MapPoint
-        var spot: String
+        var positions: TravelModel
         @Binding var tap: Bool
+        @Binding var day: Int
     }
 }
 
-#Preview {
-    KakaoMapView(draw: .constant(true), tap: .constant(true), position: MapPoint(longitude: 126.942250, latitude: 33.458528), spot: "성산일출봉")
-}

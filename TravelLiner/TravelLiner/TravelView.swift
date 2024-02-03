@@ -6,24 +6,26 @@
 //
 
 import SwiftUI
+import SwiftData
 import KakaoMapsSDK
 
 struct TravelView: View {
     @State var draw: Bool = true
     @State var tap: Bool = false
-    @State var search_toggle: Bool = true
+    @State var search_toggle: Bool = false
     @State var search_input: String = ""
-    var title: String
-    var position: MapPoint
+    @State var day: Int = 1
+    @Bindable var travel: TravelModel
+    @StateObject var searchPlacce: KakaoSearchPlace = KakaoSearchPlace()
+    //var title: String
+    //var position: MapPoint
     var body: some View {
         ZStack{
             
-            KakaoMapView(draw: $draw, tap: $tap, position: position, spot: title)
-//                .onTapGesture {
-//                    self.search_toggle.toggle()
-//                }
-            //Rectangle()
-                .foregroundStyle(.secondary)
+            KakaoMapView(draw: $draw, tap: $tap, day: $day, travel: self.travel)
+                .onTapGesture {
+                    self.search_toggle.toggle()
+                }
                 .onAppear(){
                     self.draw = true
                 }
@@ -32,52 +34,100 @@ struct TravelView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea(edges: .bottom)
-                .navigationTitle(Text(title))
-            .navigationBarTitleDisplayMode(.inline)
+                .navigationTitle(travel.title)
+                .navigationBarTitleDisplayMode(.inline)
             VStack{
                 ScrollView(.horizontal){
                     HStack{
                         Spacer()
-                        ForEach(0...7, id: \.self) { index in
-                            Text("\(index + 1) 일차")
+                        ForEach(travel.days) { day in
+                            Text("\(day.date) 일차")
                                 .padding(10)
                                 .padding(.horizontal)
+                                .foregroundStyle(.background)
                                 .background {
                                     RoundedRectangle(cornerRadius: 20)
-                                        .foregroundStyle(.background)
+                                        .foregroundStyle(day.date == self.day ? Color.accentColor : Color.secondary)
                                         .shadow(radius: 7, x: 5, y: 5)
                                 }
                                 .padding(7)
                                 .padding(.bottom)
+                                .scaleEffect(day.date == self.day ? 1.1 : 1.0)
+                                .onTapGesture {
+                                    self.day = day.date
+                                }
                         }
                         Spacer()
                     }
                 }
                 if search_toggle {
-                    HStack{
+                    VStack{
                         HStack{
-                            Image(systemName: "magnifyingglass")
-                            TextField("추가하고싶은 여행지를 선택하세요", text: $search_input)
+                            HStack{
+                                Image(systemName: "magnifyingglass")
+                                TextField("추가하고싶은 여행지를 선택하세요", text: $search_input)
+                                    .onSubmit {
+                                        searchPlacce.searchPlacewithKeyword(keyword: search_input, page: 1)
+                                    }
+                                //.foregroundStyle(.foreground)
+                                //.textFieldStyle(.roundedBorder)
+                            }
+                            .padding(7)
+                            .background{
+                                Capsule()
+                                    .foregroundStyle(.background)
+                                    .shadow(radius: 7, x: 5, y: 5)
+                            }
+                            Button {
+                                self.search_input = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 35)
+                                    .foregroundStyle(.white)
+                                    .shadow(radius: 7, x: 5, y: 5)
+                                
+                            }
                         }
-                        .padding(7)
-                        .background{
-                            Capsule()
-                                .foregroundStyle(.white)
-                                .shadow(radius: 7, x: 5, y: 5)
+                        .padding(.horizontal)
+                        ScrollView {
+                            ForEach(searchPlacce.placeDoc, id: \.self) { places in
+                                HStack{
+                                    VStack(alignment: .leading){
+                                        Text(places.place_name ?? "no name")
+                                        Text(places.road_address_name ?? "no address")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                        //.modifier(seaerchPlaceViewModifier(place: $place, place_info: place, day_index: day_index))
+                                    }
+                                    Spacer()
+                                    Button{
+                                        print(places)
+                                        travel.days.filter{$0.date == self.day}.first?.places.append(
+                                            Places(name: places.place_name ?? "no name", longitude: Double(places.x ?? "0.0") ?? 0.0, latitude: Double(places.y ?? "0.0") ?? 0.0)
+                                        )
+                                        searchPlacce.placeDoc = []
+                                    } label: {
+                                        Image(systemName: "plus.circle.fill")
+                                            .scaleEffect(1.5)
+                                        //.foregroundStyle(self.place.map{ $0.name }.contains(place.place_name) ? .red : .blue)
+                                    }
+                                }
+                                .padding(10)
+                                Divider()
+                            }
                         }
-                        Button {
-                            
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 35)
-                                .foregroundStyle(.white)
-                                .shadow(radius: 7, x: 5, y: 5)
-                            
+                        .background {
+                            RoundedRectangle(cornerRadius: 10)
+                                .foregroundStyle(.background)
+                                .shadow(radius: 5, x: 5, y: 5)
                         }
+                        .padding(5)
+                        .frame(height: 300)
+                        //.border(.red)
+                        Spacer()
                     }
-                    .padding(.horizontal)
                 }
                 Spacer()
                 HStack{
@@ -120,7 +170,7 @@ struct TravelView: View {
                 }
             }
             .sheet(isPresented: $tap, content: {
-                Text(title)
+                Text(travel.title)
             })
         }
     }
@@ -128,6 +178,9 @@ struct TravelView: View {
 
 
 
-#Preview {
-    TravelView(title: "title", position: MapPoint(longitude: 126.942250, latitude: 33.458528))
-}
+//#Preview {
+//    TravelView(travel: travel_dummy)
+//        //.modelContainer(for: [TravelModel.self])
+//        //.modelContainer(previewContainer_travel)
+//        //.modelContainer(for: TravelView.self)
+//}

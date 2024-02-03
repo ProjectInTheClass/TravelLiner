@@ -29,7 +29,7 @@ struct HomeView: View {
                     ForEach(travel) { travels in
                         NavigationLink {
                             //Text(trip_previewList[index] + "시작!")
-                            TravelView(title: travels.title, position: MapPoint(longitude: travels.days.first?.places.first?.longitude ?? 0.0, latitude: travels.days.first?.places.first?.latitude ?? 0.0))
+                            TravelView(travel: travels)
                                 .onAppear {
                                     print(travels.days.first?.places.first?.latitude ?? 0.0)
                                 }
@@ -63,7 +63,6 @@ struct HomeView: View {
                         }
                         
                     }
-                    .navigationTitle(Text("나의 여행"))
                     Spacer()
                     Button {
                         self.addTravel.toggle()
@@ -85,6 +84,8 @@ struct HomeView: View {
                                 .foregroundStyle(.background)
                         }
                         .padding(20)
+                        
+                        .navigationTitle(Text("나의 여행"))
                     }
                     .sheet(isPresented: $addTravel) {
                         AddTravelView()
@@ -94,6 +95,7 @@ struct HomeView: View {
             }
             //.background(Color.secondary.opacity(0.3))
         }
+        .preferredColorScheme(.light)
     }
 }
 
