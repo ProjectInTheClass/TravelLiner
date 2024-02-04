@@ -18,6 +18,7 @@
 		039E20BF2B6D112800517534 /* DataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039E20B92B6D112800517534 /* DataModel.swift */; };
 		039E20C02B6D112800517534 /* AddTravelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039E20BA2B6D112800517534 /* AddTravelView.swift */; };
 		039E20C12B6D112800517534 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039E20BB2B6D112800517534 /* HomeView.swift */; };
+		039E20C42B6D259700517534 /* Preview_sampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039E20C32B6D259700517534 /* Preview_sampleData.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 		039E20BA2B6D112800517534 /* AddTravelView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddTravelView.swift; sourceTree = "<group>"; };
 		039E20BB2B6D112800517534 /* HomeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		039E20C22B6D1B1A00517534 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		039E20C32B6D259700517534 /* Preview_sampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preview_sampleData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +77,7 @@
 				039E20BB2B6D112800517534 /* HomeView.swift */,
 				039E20B62B6D112800517534 /* KakaoMapView.swift */,
 				039E20B72B6D112800517534 /* KakaoSearchPlace.swift */,
+				039E20C32B6D259700517534 /* Preview_sampleData.swift */,
 				039E20B82B6D112800517534 /* TravelView.swift */,
 				039E20AB2B6D0F5300517534 /* Preview Content */,
 			);
@@ -165,6 +168,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				039E20C42B6D259700517534 /* Preview_sampleData.swift in Sources */,
 				039E20BC2B6D112800517534 /* KakaoMapView.swift in Sources */,
 				039E20A82B6D0F5100517534 /* ContentView.swift in Sources */,
 				039E20A62B6D0F5100517534 /* TravelLinerApp.swift in Sources */,
