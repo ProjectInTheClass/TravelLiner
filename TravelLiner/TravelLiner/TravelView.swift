@@ -10,13 +10,13 @@ import SwiftData
 import KakaoMapsSDK
 
 struct TravelView: View {
-    @State var draw: Bool = true
-    @State var tap: Bool = false
-    @State var search_toggle: Bool = false
-    @State var search_input: String = ""
-    @State var day: Int = 1
-    @Bindable var travel: TravelModel
-    @StateObject var searchPlacce: KakaoSearchPlace = KakaoSearchPlace()
+    @State var draw: Bool = true // 카카오맵 그리기 그리고 지우기 확인용
+    @State var tap: Bool = false // 지도 누름 감지
+    @State var search_toggle: Bool = false // 돋보기 검색 누름 확인
+    @State var search_input: String = "" // 검색어필드
+    @State var day: Int = 1 // 선택된 날짜
+    @Bindable var travel: TravelModel // 데이터
+    @StateObject var searchPlacce: KakaoSearchPlace = KakaoSearchPlace() // 검색 클래스
     //var title: String
     //var position: MapPoint
     var body: some View {
@@ -40,7 +40,7 @@ struct TravelView: View {
                 ScrollView(.horizontal){
                     HStack{
                         Spacer()
-                        ForEach(travel.days) { day in
+                        ForEach(travel.days.sorted(by: {$0.date < $1.date})) { day in
                             Text("\(day.date) 일차")
                                 .padding(10)
                                 .padding(.horizontal)
@@ -105,7 +105,7 @@ struct TravelView: View {
                                     Button{
                                         print(places)
                                         travel.days.filter{$0.date == self.day}.first?.places.append(
-                                            Places(name: places.place_name ?? "no name", longitude: Double(places.x ?? "0.0") ?? 0.0, latitude: Double(places.y ?? "0.0") ?? 0.0)
+                                            Places(name: places.place_name ?? "no name", longitude: Double(places.x ?? "0.0") ?? 0.0, latitude: Double(places.y ?? "0.0") ?? 0.0, sequence: travel.days.filter{$0.date == self.day}.first?.places.count ?? 0)
                                         )
                                         searchPlacce.placeDoc = []
                                     } label: {
