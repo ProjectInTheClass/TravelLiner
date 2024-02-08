@@ -38,9 +38,11 @@ struct KakaoMapView: UIViewRepresentable {
             context.coordinator.controller?.stopEngine()
             context.coordinator.controller?.stopRendering()
         }
+        //MARK: 선택된 일차 감지후 poi 호출
         if self.day != self.day_old {
             context.coordinator.createPois(day: self.day)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // 바로 바꾸면 뷰가 그려지지 않을 순간 호출되어 에러남
                 self.day_old = self.day
             }
             //self.day_old = self.day
@@ -58,7 +60,9 @@ struct KakaoMapView: UIViewRepresentable {
     class kakaoMapCoordinator: NSObject, MapControllerDelegate {
         
         func authenticationSucceeded() {
+            // 인증 감지
             print("성공")
+            //인증 후 뷰 그리기
             addViews()
         }
 //        func authenticationFailed(_ errorCode: Int, desc: String) {
@@ -82,9 +86,11 @@ struct KakaoMapView: UIViewRepresentable {
         }
         
         func createLabelLayer() {
+            //Poi 레이어 그려줌
+            //Poi가 지도에 그려지는 마크(맵핀임)
                 let view = controller?.getView("mapview") as! KakaoMap
                 let manager = view.getLabelManager()
-                let layerOption = LabelLayerOptions(layerID: "PoiLayer", competitionType: .none, competitionUnit: .symbolFirst, orderType: .rank, zOrder: 0)
+                let layerOption = LabelLayerOptions(layerID: "PoiLayer", competitionType: .none, competitionUnit: .symbolFirst, orderType: .rank, zOrder: 10000)
                 let _ = manager.addLabelLayer(option: layerOption)
             }
             
@@ -95,52 +101,50 @@ struct KakaoMapView: UIViewRepresentable {
                 
                 // PoiBadge는 스타일에도 추가될 수 있다. 이렇게 추가된 Badge는 해당 스타일이 적용될 때 함께 그려진다.
                 let noti1 = PoiBadge(badgeID: "badge1", image: UIImage(systemName: "swift"), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 0)
-                let iconStyle1 = PoiIconStyle(symbol: UIImage(systemName: "mapin"), anchorPoint: CGPoint(x: 0.0, y: 0.5),transition: PoiTransition(entrance: .scale, exit: .scale) ,badges: [])
+                // 줌 안되었을 때 그려지는 icon
+                let iconStyle1 = PoiIconStyle(symbol: UIImage(systemName: "mappin"), anchorPoint: CGPoint(x: 0.5, y: 0.5),transition: PoiTransition(entrance: .scale, exit: .scale) ,badges: [])
                 let noti2 = PoiBadge(badgeID: "badge2", image: UIImage(systemName: "circle"), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 0)
+                // 일정 이상 줌하면 그려지는 icon
                 let iconStyle2 = PoiIconStyle(symbol: UIImage(systemName: "mappin.and.ellipse")?.withTintColor(.systemRed), anchorPoint: CGPoint(x: 0.5, y: 0.5), badges: [])
                 
                 let red = TextStyle(fontSize: 20, fontColor: UIColor.white, strokeThickness: 2, strokeColor: UIColor.red)
                 let blue = TextStyle(fontSize: 40, fontColor: UIColor.black, strokeThickness: 2, strokeColor: UIColor.white)
                 
                 // PoiTextStyle 생성
-                let textStyle1 = PoiTextStyle(textLineStyles: [PoiTextLineStyle(textStyle: red)])
-                let textStyle2 = PoiTextStyle(textLineStyles: [PoiTextLineStyle(textStyle: blue)])
+                let textStyle1 = PoiTextStyle(textLineStyles: [PoiTextLineStyle(textStyle: red)]) // 줌 안되었을 때 그려지는 스타일
+                let textStyle2 = PoiTextStyle(textLineStyles: [PoiTextLineStyle(textStyle: blue)]) // 일정 이상 줌하면 그려지는 스타일
                 
                 let poiStyle = PoiStyle(styleID: "PerLevelStyle", styles: [
-                    PerLevelPoiStyle(iconStyle: iconStyle1, textStyle: textStyle1, level: 5),
-                    PerLevelPoiStyle(iconStyle: iconStyle2, textStyle: textStyle2, level: 12)
+                    PerLevelPoiStyle(iconStyle: iconStyle1, textStyle: textStyle1, level: 5), // 줌 안되었을 때 그려지는 스타일
+                    PerLevelPoiStyle(iconStyle: iconStyle2, textStyle: textStyle2, level: 12) // 일정 이상 줌하면 그려지는 스타일
                 ])
                 manager.addPoiStyle(poiStyle)
             }
             
         
         func createPois(day: Int) {
-            let view = controller?.getView("mapview") as! KakaoMap
+            let view = controller?.getView("mapview") as! KakaoMap // 맵 뷰
             let manager = view.getLabelManager()
-            let layer = manager.getLabelLayer(layerID: "PoiLayer")
-            layer?.clearAllItems()
+            let layer = manager.getLabelLayer(layerID: "PoiLayer") // poi 레이어 가져옴
+            layer?.clearAllItems() // 일차가 달라지면 해당 일차 핀만 그리기 위해서 먼저 다 지움
             let poiOption = PoiOptions(styleID: "PerLevelStyle")
-            poiOption.rank = 0
-            poiOption.clickable = true
-            poiOption.addText(PoiText(text: "name", styleIndex: 0))
-            //var PoiArrays: [Poi] = []
+            poiOption.rank = 0 // poi스타일별 랭크
+            poiOption.clickable = true  //클릭 이벤트 설정
+            poiOption.addText(PoiText(text: "name", styleIndex: 0)) // 텍스트
             print(day, "//////////////////////////")
-            for position in self.positions.days.filter({ $0.date == day }).first?.places ?? [] {
-                let poi = layer?.addPoi(option:poiOption, at: MapPoint(longitude: position.longitude, latitude: position.latitude))
+            for position in (self.positions.days.filter({ $0.date == day }).first?.places ?? []).sorted(by: {$0.sequence < $1.sequence}) { //선택된 일차의 장소 리스트 가져옴
+                let poi = layer?.addPoi(option:poiOption, at: MapPoint(longitude: position.longitude, latitude: position.latitude)) // Poi 추가
+                // Poi 랭크가 0 이라 그 위에 그려지기 위해서 zOrder 1임
+                let badge = PoiBadge(badgeID: "num", image: UIImage(systemName: "\(position.sequence).circle.fill")!, offset: CGPoint(x: 0.9, y: 0.1), zOrder: 1)
+                
+                poi?.addBadge(badge)
+                //Poi의 글자 그려줌
                 poi?.changeTextAndStyle(texts: [PoiText(text: position.name, styleIndex: 0)], styleID: "PerLevelStyle")
-                    let  poi_event = poi?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
-                    poi?.show()
+                // poi 클릭되면 이벤트 실행
+                let  poi_event = poi?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
+                poi?.show()
+                poi?.showBadge(badgeID: "num")
                 }
-//                ForEach(self.positions, id: \.self) { position in
-//                    let poi1 = layer?.addPoi(option:poiOption, at: position)
-//                    let  _ = poi1?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
-//                    // Poi 개별 Badge추가. 즉, 아래에서 생성된 Poi는 Style에 빌트인되어있는 badge와, Poi가 개별적으로 가지고 있는 Badge를 갖게 된다.
-//                    //let badge = PoiBadge(badgeID: "noti", image: UIImage(systemName: "swift"), offset: CGPoint(x: 0, y: 0), zOrder: 1)
-//                    //poi1?.addBadge(badge)
-//                    //poi1?.show()
-//                    
-//                }
-                //poi1?.showBadge(badgeID: "noti")
             }
         
         func tapHandler(_ param: PoiInteractionEventParam) {
@@ -193,6 +197,7 @@ struct KakaoMapView: UIViewRepresentable {
             let mapView: KakaoMap? = controller?.getView("mapview") as? KakaoMap
             mapView?.viewRect = CGRect(origin: CGPoint.zero, size: size)
             if first {
+                //초기화시 카레라 위치 정해줌 첫 장소 위치로 설정함
                 let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.positions.days.filter{$0.date == self.day}.first?.places.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)}.first ?? MapPoint(longitude: 126.942250, latitude: 33.458528), mapView: mapView!)
                 mapView?.moveCamera(cameraUpdate)
                 first = false
@@ -200,6 +205,7 @@ struct KakaoMapView: UIViewRepresentable {
         }
         
         func createController(_ view: KMViewContainer) {
+            // kakaomap 예시와 달리 update 뷰 전에 엔진을 작동해야 뷰가 그려짐
             controller = KMController(viewContainer: view)
             //controller?.proMotionSupport = true
             controller?.delegate = self
