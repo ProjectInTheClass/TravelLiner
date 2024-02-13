@@ -13,7 +13,7 @@ struct KakaoMapView: UIViewRepresentable {
     @Binding var tap: Bool
     @Binding var day: Int
     @Binding var tap_place: Places
-    @State var day_old: Int  = 1
+    @Binding var day_old: Int
     //var positions: [MapPoint]
     var travel: TravelModel
     
@@ -42,9 +42,10 @@ struct KakaoMapView: UIViewRepresentable {
         //MARK: 선택된 일차 감지후 poi 호출
         if self.day != self.day_old {
             context.coordinator.createPois(day: self.day)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
                 // 바로 바꾸면 뷰가 그려지지 않을 순간 호출되어 에러남
                 self.day_old = self.day
+                context.coordinator.move_whenPoiCreate()
             }
             //self.day_old = self.day
         }
@@ -190,7 +191,11 @@ struct KakaoMapView: UIViewRepresentable {
             let cameraUpdate: CameraUpdate = CameraUpdate.make(target: MapPoint(longitude: cameraPos?.longitude ?? 0.0, latitude: cameraPos?.latitude ?? 0.0), mapView: mapView!)
             mapView?.moveCamera(cameraUpdate)
         }
-        
+        func move_whenPoiCreate() {
+            let mapView: KakaoMap? = controller?.getView("mapview") as? KakaoMap
+            let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.positions.days.filter{$0.date == self.day}.first?.places.filter{$0.sequence == 1}.first.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)} ?? MapPoint(longitude: 126.942250, latitude: 33.458528), mapView: mapView!)
+            mapView?.moveCamera(cameraUpdate)
+        }
         // 인증 실패시 호출.
         func authenticationFailed(_ errorCode: Int, desc: String) {
             print("error code: \(errorCode)")
@@ -233,12 +238,14 @@ struct KakaoMapView: UIViewRepresentable {
             }
         }
         
+       
+        
         func containerDidResized(_ size: CGSize) {
             let mapView: KakaoMap? = controller?.getView("mapview") as? KakaoMap
             mapView?.viewRect = CGRect(origin: CGPoint.zero, size: size)
             if first {
                 //초기화시 카레라 위치 정해줌 첫 장소 위치로 설정함
-                let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.positions.days.filter{$0.date == self.day}.first?.places.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)}.first ?? MapPoint(longitude: 126.942250, latitude: 33.458528), mapView: mapView!)
+                let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.positions.days.filter{$0.date == self.day}.first?.places.filter{$0.sequence == 1}.first.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)} ?? MapPoint(longitude: 126.942250, latitude: 33.458528), mapView: mapView!)
                 mapView?.moveCamera(cameraUpdate)
                 first = false
             }

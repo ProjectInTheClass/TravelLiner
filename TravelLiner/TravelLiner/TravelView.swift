@@ -15,6 +15,7 @@ struct TravelView: View {
     @State var search_toggle: Bool = false // 돋보기 검색 누름 확인
     @State var search_input: String = "" // 검색어필드
     @State var day: Int = 1 // 선택된 날짜
+    @State var day_old: Int = 1 // 선택된 날짜
     @State var tap_place: Places = Places(name: "", longitude: 0.0, latitude: 0.0, sequence: 1)
     @State var img_seq = 0
     @Bindable var travel: TravelModel // 데이터
@@ -23,7 +24,7 @@ struct TravelView: View {
     //var position: MapPoint
     var body: some View {
         ZStack{
-            KakaoMapView(draw: $draw, tap: $tap, day: $day, tap_place: $tap_place, travel: self.travel)
+            KakaoMapView(draw: $draw, tap: $tap, day: $day, tap_place: $tap_place, day_old: $day_old, travel: self.travel)
 //                .onTapGesture {
 //                    self.search_toggle.toggle()
 //                }
@@ -182,6 +183,7 @@ struct TravelView: View {
                                             Places(name: places.place_name ?? "no name", longitude: Double(places.x ?? "0.0") ?? 0.0, latitude: Double(places.y ?? "0.0") ?? 0.0, sequence: (travel.days.filter{$0.date == self.day}.first?.places.count ?? 0) + 1)
                                         )
                                         searchPlacce.placeDoc = []
+                                        self.day_old = 0
                                     } label: {
                                         Image(systemName: "plus.circle.fill")
                                             .scaleEffect(1.5)
