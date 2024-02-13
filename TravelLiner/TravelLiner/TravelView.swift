@@ -16,6 +16,7 @@ struct TravelView: View {
     @State var search_input: String = "" // 검색어필드
     @State var day: Int = 1 // 선택된 날짜
     @State var tap_place: Places = Places(name: "", longitude: 0.0, latitude: 0.0, sequence: 1)
+    @State var img_seq = 0
     @Bindable var travel: TravelModel // 데이터
     @StateObject var searchPlacce: KakaoSearchPlace = KakaoSearchPlace() // 검색 클래스
     //var title: String
@@ -66,10 +67,64 @@ struct TravelView: View {
                     VStack{
                         Spacer()
                         Image(systemName: "mappin")
+                            
                             .popover(isPresented: $tap, arrowEdge: .top, content: {
-                                Text(tap_place.name)
-                                    .padding()
-                                    .presentationCompactAdaptation(.popover)
+                                VStack{
+                                    HStack{
+                                        Text(tap_place.name)
+                                            .bold()
+                                            .font(.title2)
+                                            .presentationCompactAdaptation(.popover)
+                                            .onAppear() {
+                                                self.search_toggle = false
+                                                searchPlacce.searchPlacewithKeyword(keyword: tap_place.name, page: 1, x: tap_place.longitude, y: tap_place.latitude)
+                                                searchPlacce.searchImage(keyword: tap_place.name, page: 1)
+                                                self.img_seq = 0
+                                            }
+                                        Text(" #")
+                                        Text(searchPlacce.placeDoc.first?.category_group_name ?? "")
+                                        Spacer()
+                                    }
+                                    HStack{
+                                        Button {
+                                            if img_seq == 0 {
+                                                return
+                                            }
+                                            img_seq -= 1
+                                        } label: {
+                                            Image(systemName: "chevron.left")
+                                        }
+                                        .disabled(img_seq == 0)
+                                        Spacer()
+                                        if !self.searchPlacce.imgDoc.isEmpty {
+                                            AsyncImage(url: URL(string: self.searchPlacce.imgDoc.map{$0.image_url ?? "https://avatars.githubusercontent.com/u/46069040?s=400&u=6f2850dc2cbf5f0ca300f7bbd79cbbcd79fa137c&v=4"}[img_seq])) { image in
+                                                image.image?.resizable()
+                                                    .scaledToFit()
+                                                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                                                    .frame(width: 300)
+                                            }
+                                        }
+                                        Spacer()
+                                        Button {
+                                            if img_seq == self.searchPlacce.imgDoc.count - 1 {
+                                                return
+                                            }
+                                            img_seq += 1
+                                        } label: {
+                                            Image(systemName: "chevron.right")
+                                        }
+                                        .disabled(img_seq == self.searchPlacce.imgDoc.count - 1)
+                                    }
+                                    HStack{
+                                        Text("주소: \(searchPlacce.placeDoc.first?.road_address_name ?? "도로명 주소")")
+                                        Spacer()
+                                    }
+                                    HStack{
+                                        Text("전화번호: \(searchPlacce.placeDoc.first?.phone ?? "000-000-000")")
+                                        Spacer()
+                                    }
+                                }
+                                .padding()
                             })
                         Spacer()
                     }

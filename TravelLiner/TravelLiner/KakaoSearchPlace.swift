@@ -10,10 +10,14 @@ import SwiftUI
 
 class KakaoSearchPlace: ObservableObject {
     @Published var placeDoc: [Documents] = []
+    @Published var imgDoc: [ImgDocuments] = []
     
-    func searchPlacewithKeyword(keyword: String, page: Int) {
+    func searchPlacewithKeyword(keyword: String, page: Int, x: Double = 0.0, y: Double = 0.0, radius: Int = 200) {
         
-        let url_pre = "https://dapi.kakao.com/v2/local/search/keyword.json?query=\(keyword)&page=\(page)&size=15&asort=accuracy"
+        var url_pre = "https://dapi.kakao.com/v2/local/search/keyword.json?query=\(keyword)&page=\(page)&size=15&asort=accuracy"
+        if x == 0.0 {
+            url_pre += "x=\(x)&y=\(y)&radius=\(radius)"
+        }
         let url_encoded = url_pre.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
         let url = URL(string: url_encoded)!
         let api_key = Bundle.main.infoDictionary?["Rest_api_key"] as? String ?? ""
@@ -35,11 +39,43 @@ class KakaoSearchPlace: ObservableObject {
                 //print(response ?? "")
                 DispatchQueue.main.async {
                     self.placeDoc = datas.documents ?? []
-                    print(self.placeDoc.map{ $0.place_name })
+                    //print(self.placeDoc.map{ $0.place_name })
                 }
                 
             } catch {
                 
+            }
+        }.resume()
+    }
+    
+    func searchImage(keyword: String, page: Int) {
+        var url_pre = "https://dapi.kakao.com/v2/search/image?query=\(keyword)&page=\(page)&size=5&asort=accuracy"
+        let url_encoded = url_pre.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+        let url = URL(string: url_encoded)!
+        let api_key = Bundle.main.infoDictionary?["Rest_api_key"] as? String ?? ""
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("KakaoAK \(api_key)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if error != nil {
+                print(error?.localizedDescription ?? "")
+                return
+            }
+            do {
+                guard let data_unwrapped = data else {
+                    print("data unwrap error")
+                    return
+                }
+                let datas = try JSONDecoder().decode(SearchImageData.self, from: data_unwrapped)
+                //print(response ?? "")
+                DispatchQueue.main.async {
+                    self.imgDoc = datas.documents 
+                    print(self.imgDoc.first?.image_url)
+                }
+                
+            } catch {
+                print(error.localizedDescription)
             }
         }.resume()
     }
@@ -76,7 +112,6 @@ struct Documents: Codable, Hashable {
     var place_url: String?
     var distance: String?
 }
-
 let kakaoCategoryGroupCode: [String: String] = [
     "MT1" : "대형마트",
     "CS2" : "편의점",
@@ -97,3 +132,25 @@ let kakaoCategoryGroupCode: [String: String] = [
     "HP8" : "병원",
     "PM9" : "약국"
 ]
+
+struct SearchImageData: Codable {
+    var meta: MetaData
+    var documents: [ImgDocuments]
+    
+    struct MetaData: Codable {
+        var total_count: Int?
+        var pageable_count: Int?
+        var is_end: Bool?
+    }
+}
+
+struct ImgDocuments: Codable, Hashable {
+    var collection: String?
+    var thumbnail_url: String?
+    var image_url: String?
+    var width: Int?
+    var height: Int?
+    var display_sitename: String?
+    var doc_url: String?
+    var datetime: String?
+}
