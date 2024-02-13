@@ -47,11 +47,15 @@ struct TravelView: View {
                             Text("\(day.date) 일차")
                                 .padding(10)
                                 .padding(.horizontal)
-                                .foregroundStyle(.background)
+                                .foregroundStyle(day.date == self.day ? .white : .black)
                                 .background {
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .foregroundStyle(day.date == self.day ? Color.accentColor : Color.secondary)
-                                        .shadow(radius: 7, x: 5, y: 5)
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .foregroundStyle(day.date == self.day ? Color.accentColor : Color.white)
+                                        //.shadow(radius: 7, x: 5, y: 5)
+                                    if day.date != self.day {
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(lineWidth: 2)
+                                    }
                                 }
                                 .padding(7)
                                 .padding(.bottom)
@@ -66,8 +70,8 @@ struct TravelView: View {
                 if tap {
                     VStack{
                         Spacer()
-                        Image(systemName: "mappin")
-                            
+                        Image("POI")
+                            .opacity(0.0)
                             .popover(isPresented: $tap, arrowEdge: .top, content: {
                                 VStack{
                                     HStack{
@@ -175,7 +179,7 @@ struct TravelView: View {
                                     Button{
                                         print(places)
                                         travel.days.filter{$0.date == self.day}.first?.places.append(
-                                            Places(name: places.place_name ?? "no name", longitude: Double(places.x ?? "0.0") ?? 0.0, latitude: Double(places.y ?? "0.0") ?? 0.0, sequence: travel.days.filter{$0.date == self.day}.first?.places.count ?? 0)
+                                            Places(name: places.place_name ?? "no name", longitude: Double(places.x ?? "0.0") ?? 0.0, latitude: Double(places.y ?? "0.0") ?? 0.0, sequence: (travel.days.filter{$0.date == self.day}.first?.places.count ?? 0) + 1)
                                         )
                                         searchPlacce.placeDoc = []
                                     } label: {
@@ -214,9 +218,12 @@ struct TravelView: View {
                             .background{
                                 Circle()
                                     .foregroundStyle(.background)
+                                    .shadow(radius: 7, x: 5, y: 5)
+                                Circle()
+                                    .stroke(lineWidth: 2.0)
+                                    .foregroundStyle(Color.black)
                             }
                             .padding()
-                            .shadow(radius: 7, x: 5, y: 5)
                     }
                     Spacer()
                     Button {
@@ -232,9 +239,12 @@ struct TravelView: View {
                             .background{
                                 Circle()
                                     .foregroundStyle(.background)
+                                    .shadow(radius: 7, x: 5, y: 5)
+                                Circle()
+                                    .stroke(lineWidth: 2.0)
+                                    .foregroundStyle(Color.black)
                             }
                             .padding()
-                            .shadow(radius: 7, x: 5, y: 5)
                     }
 
                 }

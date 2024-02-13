@@ -60,6 +60,32 @@ struct KakaoMapView: UIViewRepresentable {
     
     class kakaoMapCoordinator: NSObject, MapControllerDelegate {
         
+        func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage {
+           let size = image.size
+           
+           let widthRatio  = targetSize.width  / size.width
+           let heightRatio = targetSize.height / size.height
+           
+           // Figure out what our orientation is, and use that to form the rectangle
+           var newSize: CGSize
+           if(widthRatio > heightRatio) {
+               newSize = CGSize(width: size.width * heightRatio, height: size.height * heightRatio)
+           } else {
+               newSize = CGSize(width: size.width * widthRatio,  height: size.height * widthRatio)
+           }
+           
+           // This is the rect that we've calculated out and this is what is actually used below
+           let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
+           
+           // Actually do the resizing to the rect using the ImageContext stuff
+           UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+           image.draw(in: rect)
+           let newImage = UIGraphicsGetImageFromCurrentImageContext()
+           UIGraphicsEndImageContext()
+           
+           return newImage!
+       }
+        
         func authenticationSucceeded() {
             // 인증 감지
             print("성공")
@@ -105,12 +131,15 @@ struct KakaoMapView: UIViewRepresentable {
                 // PoiBadge는 스타일에도 추가될 수 있다. 이렇게 추가된 Badge는 해당 스타일이 적용될 때 함께 그려진다.
                 let noti1 = PoiBadge(badgeID: "badge1", image: UIImage(systemName: "swift"), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 0)
                 // 줌 안되었을 때 그려지는 icon
-                let iconStyle1 = PoiIconStyle(symbol: UIImage(systemName: "mappin"), anchorPoint: CGPoint(x: 0.5, y: 0.5),transition: PoiTransition(entrance: .scale, exit: .scale) ,badges: [])
+                let poiImage = UIImage(named: "POI")
+                let poiResize = resizeImage(image: poiImage!, targetSize: CGSizeMake(200.0, 200.0))
+                let iconStyle1 = PoiIconStyle(symbol: poiImage, anchorPoint: CGPoint(x: 0.5, y: 0.5),transition: PoiTransition(entrance: .scale, exit: .scale) ,badges: [])
+                //iconStyle1.symbol?.size = CGSize(width: 50, height: 50)
                 let noti2 = PoiBadge(badgeID: "badge2", image: UIImage(systemName: "circle"), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 0)
                 // 일정 이상 줌하면 그려지는 icon
-                let iconStyle2 = PoiIconStyle(symbol: UIImage(systemName: "mappin.and.ellipse")?.withTintColor(.systemRed), anchorPoint: CGPoint(x: 0.5, y: 0.5), badges: [])
+                let iconStyle2 = PoiIconStyle(symbol: poiImage/*?.withTintColor(.systemRed)*/, anchorPoint: CGPoint(x: 0.5, y: 0.5), badges: [])
                 
-                let red = TextStyle(fontSize: 20, fontColor: UIColor.white, strokeThickness: 2, strokeColor: UIColor.red)
+                let red = TextStyle(fontSize: 40, fontColor: UIColor.black, strokeThickness: 2, strokeColor: UIColor.white)
                 let blue = TextStyle(fontSize: 40, fontColor: UIColor.black, strokeThickness: 2, strokeColor: UIColor.white)
                 
                 // PoiTextStyle 생성
@@ -119,7 +148,7 @@ struct KakaoMapView: UIViewRepresentable {
                 
                 let poiStyle = PoiStyle(styleID: "PerLevelStyle", styles: [
                     PerLevelPoiStyle(iconStyle: iconStyle1, textStyle: textStyle1, level: 5), // 줌 안되었을 때 그려지는 스타일
-                    PerLevelPoiStyle(iconStyle: iconStyle2, textStyle: textStyle2, level: 12) // 일정 이상 줌하면 그려지는 스타일
+                    //PerLevelPoiStyle(iconStyle: iconStyle2, textStyle: textStyle2, level: 12) // 일정 이상 줌하면 그려지는 스타일
                 ])
                 manager.addPoiStyle(poiStyle)
             }
@@ -138,15 +167,17 @@ struct KakaoMapView: UIViewRepresentable {
             for position in (self.positions.days.filter({ $0.date == day }).first?.places ?? []).sorted(by: {$0.sequence < $1.sequence}) { //선택된 일차의 장소 리스트 가져옴
                 let poi = layer?.addPoi(option:poiOption, at: MapPoint(longitude: position.longitude, latitude: position.latitude)) // Poi 추가
                 // Poi 랭크가 0 이라 그 위에 그려지기 위해서 zOrder 1임
-                let badge = PoiBadge(badgeID: "num", image: UIImage(systemName: "\(position.sequence).circle.fill")!, offset: CGPoint(x: 0.9, y: 0.1), zOrder: 1)
+                let badge_back = PoiBadge(badgeID: "num0", image: UIImage(systemName: "circle.fill")?.withTintColor(.white), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 1)
+                let badge = PoiBadge(badgeID: "num", image: UIImage(systemName: "\(position.sequence).circle.fill")?.withTintColor(.systemPink), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 2)
                 poi?.addBadge(badge)
+                poi?.addBadge(badge_back)
                 //Poi의 글자 그려줌
                 self.tapPoint[poi?.itemID ?? "itemID"] = position
                 poi?.changeTextAndStyle(texts: [PoiText(text: position.name, styleIndex: 0)], styleID: "PerLevelStyle")
                 // poi 클릭되면 이벤트 실행
                 let  poi_event = poi?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
                 poi?.show()
-                poi?.showBadge(badgeID: "num")
+                poi?.showBadges(badgeIDs: ["num", "num0"])
                 }
             }
         

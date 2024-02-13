@@ -15,8 +15,8 @@ class KakaoSearchPlace: ObservableObject {
     func searchPlacewithKeyword(keyword: String, page: Int, x: Double = 0.0, y: Double = 0.0, radius: Int = 200) {
         
         var url_pre = "https://dapi.kakao.com/v2/local/search/keyword.json?query=\(keyword)&page=\(page)&size=15&asort=accuracy"
-        if x == 0.0 {
-            url_pre += "x=\(x)&y=\(y)&radius=\(radius)"
+        if x != 0.0 {
+            url_pre = url_pre + "&x=\(x)&y=\(y)&radius=\(radius)"
         }
         let url_encoded = url_pre.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
         let url = URL(string: url_encoded)!
