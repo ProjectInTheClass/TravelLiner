@@ -15,17 +15,17 @@ struct TravelView: View {
     @State var search_toggle: Bool = false // 돋보기 검색 누름 확인
     @State var search_input: String = "" // 검색어필드
     @State var day: Int = 1 // 선택된 날짜
+    @State var tap_place: Places = Places(name: "", longitude: 0.0, latitude: 0.0, sequence: 1)
     @Bindable var travel: TravelModel // 데이터
     @StateObject var searchPlacce: KakaoSearchPlace = KakaoSearchPlace() // 검색 클래스
     //var title: String
     //var position: MapPoint
     var body: some View {
         ZStack{
-            
-            KakaoMapView(draw: $draw, tap: $tap, day: $day, travel: self.travel)
-                .onTapGesture {
-                    self.search_toggle.toggle()
-                }
+            KakaoMapView(draw: $draw, tap: $tap, day: $day, tap_place: $tap_place, travel: self.travel)
+//                .onTapGesture {
+//                    self.search_toggle.toggle()
+//                }
                 .onAppear(){
                     self.draw = true
                 }
@@ -36,6 +36,8 @@ struct TravelView: View {
                 .ignoresSafeArea(edges: .bottom)
                 .navigationTitle(travel.title)
                 .navigationBarTitleDisplayMode(.inline)
+                
+                
             VStack{
                 ScrollView(.horizontal){
                     HStack{
@@ -60,6 +62,19 @@ struct TravelView: View {
                         Spacer()
                     }
                 }
+                if tap {
+                    VStack{
+                        Spacer()
+                        Image(systemName: "mappin")
+                            .popover(isPresented: $tap, arrowEdge: .top, content: {
+                                Text(tap_place.name)
+                                    .padding()
+                                    .presentationCompactAdaptation(.popover)
+                            })
+                        Spacer()
+                    }
+                }
+                
                 if search_toggle {
                     VStack{
                         HStack{

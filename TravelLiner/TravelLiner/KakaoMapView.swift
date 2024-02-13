@@ -12,6 +12,7 @@ struct KakaoMapView: UIViewRepresentable {
     @Binding var draw: Bool
     @Binding var tap: Bool
     @Binding var day: Int
+    @Binding var tap_place: Places
     @State var day_old: Int  = 1
     //var positions: [MapPoint]
     var travel: TravelModel
@@ -50,7 +51,7 @@ struct KakaoMapView: UIViewRepresentable {
     }
     
     func makeCoordinator() -> kakaoMapCoordinator {
-        return kakaoMapCoordinator(tap: $tap, positions: self.travel, day: $day)
+        return kakaoMapCoordinator(tap: $tap, positions: self.travel, day: $day, tap_place: $tap_place)
     }
     
     static func dismantleUIView(_ uiView: KMViewContainer, coordinator: kakaoMapCoordinator) {
@@ -75,14 +76,16 @@ struct KakaoMapView: UIViewRepresentable {
             positions = TravelModel(title: "", days: [], icon: "", start_date: Date())
             self._tap = .constant(false)
             self._day = .constant(0)
+            self._tap_place = .constant(Places(name: "", longitude: 0.0, latitude: 0.0, sequence: 1))
             super.init()
         }
-        init(tap: Binding<Bool>, positions: TravelModel, day: Binding<Int>) {
+        init(tap: Binding<Bool>, positions: TravelModel, day: Binding<Int>, tap_place: Binding<Places>) {
             first = true
             _auth = false
             self.positions = positions
             self._tap = tap
             self._day = day
+            self._tap_place = tap_place
         }
         
         func createLabelLayer() {
@@ -136,9 +139,9 @@ struct KakaoMapView: UIViewRepresentable {
                 let poi = layer?.addPoi(option:poiOption, at: MapPoint(longitude: position.longitude, latitude: position.latitude)) // Poi 추가
                 // Poi 랭크가 0 이라 그 위에 그려지기 위해서 zOrder 1임
                 let badge = PoiBadge(badgeID: "num", image: UIImage(systemName: "\(position.sequence).circle.fill")!, offset: CGPoint(x: 0.9, y: 0.1), zOrder: 1)
-                
                 poi?.addBadge(badge)
                 //Poi의 글자 그려줌
+                self.tapPoint[poi?.itemID ?? "itemID"] = position
                 poi?.changeTextAndStyle(texts: [PoiText(text: position.name, styleIndex: 0)], styleID: "PerLevelStyle")
                 // poi 클릭되면 이벤트 실행
                 let  poi_event = poi?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
@@ -147,8 +150,14 @@ struct KakaoMapView: UIViewRepresentable {
                 }
             }
         
+        
         func tapHandler(_ param: PoiInteractionEventParam) {
             self.tap = true
+            let cameraPos = self.tapPoint[param.poiItem.itemID]
+            self.tap_place = cameraPos!
+            let mapView: KakaoMap? = controller?.getView("mapview") as? KakaoMap
+            let cameraUpdate: CameraUpdate = CameraUpdate.make(target: MapPoint(longitude: cameraPos?.longitude ?? 0.0, latitude: cameraPos?.latitude ?? 0.0), mapView: mapView!)
+            mapView?.moveCamera(cameraUpdate)
         }
         
         // 인증 실패시 호출.
@@ -223,8 +232,10 @@ struct KakaoMapView: UIViewRepresentable {
         var controller: KMController?
         var first: Bool
         var positions: TravelModel
+        var tapPoint: [String : Places] = [:]
         @Binding var tap: Bool
         @Binding var day: Int
+        @Binding var tap_place: Places
     }
 }
 
