@@ -16,35 +16,7 @@ struct Swipe: ViewModifier {
     @State var open = false
     let maxoffset = -60.0
     
-    //@StateObject var user = User()
-    //@Binding var progress: Bool
-    //var itsMe = false
-    //var commentId: String = ""
-    
-    
     func body(content: Content) -> some View {
-//        ZStack{
-//            RoundedRectangle(cornerRadius: 10)
-//                //.frame(width: geometry.size.width - 65)
-//                .padding(.horizontal,20)
-//                .padding(.vertical, 6)
-//                .foregroundColor(itsMe ? .red : .secondary)
-//            Button {
-//                context.delete()
-//                progress = true
-//            } label: {
-//                HStack{
-//                    Spacer()
-//                    Image(systemName:itsMe ? "trash.fill" : "trash.slash.fill")
-//                        .resizable()
-//                        .scaledToFit()
-//                        .frame(height: 25)
-//                        .foregroundColor(.white)
-//                        .padding(.horizontal,40)
-//                }
-//            }
-//            //.frame(width: )
-//            .disabled(itsMe ? false : true)
 
         content
             .offset(x: offset)
@@ -74,8 +46,6 @@ struct Swipe: ViewModifier {
                         }
                     }
             )
-        
-        
     }
 }
 

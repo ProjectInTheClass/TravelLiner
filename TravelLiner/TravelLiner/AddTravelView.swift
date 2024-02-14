@@ -150,7 +150,7 @@ struct AddPlaceVIew: View {
                 .onSubmit {
                     // 엔터치면 검색됨
                     searchPlacce.searchPlacewithKeyword(keyword: keyword, page: 1)
-                    keyword = ""
+                    //keyword = ""
                 }
             List(searchPlacce.placeDoc/*self.dummy*/, id: \.self) { places in
                 HStack{
