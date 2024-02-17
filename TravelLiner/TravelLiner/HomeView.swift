@@ -25,16 +25,19 @@ struct HomeView: View {
     @Query var travel: [TravelModel]
     @State var travelOrder: TravelOrder = .add
     @State var addTravel: Bool = false // 여행 추가 모달용
-    @State var selectedOrder = "디데이"
     @State var selLocModal = false
     @State var selected_contry = "전국"
-    var orders = ["디데이", "이름순", "여행 추가 순"]
+    var formatter: DateFormatter {
+        let formatter1 = DateFormatter()
+        formatter1.dateFormat = "y년 M월 d일"
+        return formatter1
+    }
     
     var body: some View {
         NavigationStack{
             ZStack{
                 ScrollView{
-                    VStack{
+                    VStack(spacing: 0){
                         VStack{
                             Text("나의 여행")
                                 .font(.title)
@@ -66,7 +69,7 @@ struct HomeView: View {
                         .padding(.vertical, 80)
                         HStack{
                             Picker("피커뷰", selection: $travelOrder) {
-                                Text("디데이순").tag(TravelOrder.Dday)
+                                Text("출발일자순").tag(TravelOrder.Dday)
                                 Text("이름순").tag(TravelOrder.name)
                                 Text("여행추가순").tag(TravelOrder.add)
                             }
@@ -76,7 +79,17 @@ struct HomeView: View {
                         Divider()
                             .frame(minHeight: 1)
                             .overlay(Color.accentColor)
-                        ForEach(self.travelSorted) { travels in //ForEach에 변수를 바로 담을 수 있고 SwiftData 자체가 identifiable을 포함하고 있어 id 지정 필요 없음
+                        HStack{
+                            Text("예정 여행")
+                                .bold()
+                                .font(.headline)
+                                .padding(.horizontal)
+                                .padding(.vertical, 7)
+                                .foregroundStyle(.background)
+                            Spacer()
+                        }
+                        .background(.accent)
+                        ForEach(self.travelSorted.filter{$0.start_date ?? Date() > Date()}) { travels in //ForEach에 변수를 바로 담을 수 있고 SwiftData 자체가 identifiable을 포함하고 있어 id 지정 필요 없음
                             NavigationLink {
                                 //Text(trip_previewList[index] + "시작!")
                                 TravelView(travel: travels) // 여행 상세뷰
@@ -109,11 +122,13 @@ struct HomeView: View {
                                                 .bold()
                                                 .padding(.horizontal, 10)
                                             Divider()
-                                            HStack{
-                                                Text("D - 7")
-                                                    .foregroundStyle(.black)
-                                                Spacer()
-                                            }
+                                                HStack{
+                                                    Text(self.formatter.string(from: travels.start_date ?? Date()))
+                                                        .foregroundStyle(.black)
+                                                    Spacer()
+                                                    Text(totoalDays(count: travels.days.count ))
+                                                        .foregroundStyle(.black)
+                                                }
                                             .padding(.horizontal, 10)
                                         }
                                         .padding(.horizontal, 10)
@@ -134,8 +149,85 @@ struct HomeView: View {
                                             .foregroundStyle(.background)
                                     }
                                     .Swipes() // 스와이프로 뒤의 버튼 나타나게함
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 10)
+                                    .padding(20)
+                                    
+                                }
+                            }
+                            Divider()
+                                .frame(minHeight: 1)
+                                .overlay(Color.accentColor)
+                        }
+                        HStack{
+                            Text("지난 여행")
+                                .bold()
+                                .font(.headline)
+                                .padding(.horizontal)
+                                .padding(.vertical, 7)
+                                .foregroundStyle(.background)
+                            Spacer()
+                        }
+                        .background(.gray)
+                        ForEach(self.travelSorted.filter{$0.start_date ?? Date() < Date()}) { travels in //ForEach에 변수를 바로 담을 수 있고 SwiftData 자체가 identifiable을 포함하고 있어 id 지정 필요 없음
+                            NavigationLink {
+                                //Text(trip_previewList[index] + "시작!")
+                                TravelView(travel: travels) // 여행 상세뷰
+                            } label: {
+                                ZStack{
+                                    HStack{
+                                        Spacer()
+                                        Button{
+                                            context.delete(travels)
+                                        } label: {
+                                            Image(systemName: "trash.slash.fill")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(height: 30)
+                                                .padding(.horizontal)
+                                                .frame(width: 120, height: 60, alignment: .trailing)
+                                                .foregroundColor(.white)
+                                                .background{
+                                                    Capsule()
+                                                        .foregroundStyle(.red)
+                                                }
+                                                .padding(.trailing, 25)
+                                        }
+                                    }
+                                    HStack{
+                                        VStack(alignment: .leading){
+                                            Text(travels.title)
+                                                .tint(colorscheme == .dark ? Color.white : Color.black)
+                                                .font(.title2)
+                                                .bold()
+                                                .padding(.horizontal, 10)
+                                            Divider()
+                                                HStack{
+                                                    Text(self.formatter.string(from: travels.start_date ?? Date()))
+                                                        .foregroundStyle(.black)
+                                                    Spacer()
+                                                    Text(totoalDays(count: travels.days.count ))
+                                                        .foregroundStyle(.black)
+                                                }
+                                            .padding(.horizontal, 10)
+                                        }
+                                        .padding(.horizontal, 10)
+                                        Text(travels.icon)
+                                            .font(.title)
+                                            .scaleEffect(CGSize(width: 1.5, height: 1.5))
+                                            .frame(width: 60, height: 60, alignment: .center)
+                                            .background {
+                                                Circle()
+                                                    .foregroundStyle(.foreground.opacity(0.2))
+                                            }
+                                            .padding(.leading, 3)
+                                        
+                                    }
+                                    .padding(10)
+                                    .background {
+                                        Capsule()
+                                            .foregroundStyle(.background)
+                                    }
+                                    .Swipes() // 스와이프로 뒤의 버튼 나타나게함
+                                    .padding(20)
                                     
                                 }
                             }
@@ -224,6 +316,26 @@ struct HomeView: View {
             .padding(.horizontal, 5)
             Spacer()
         }
+    }
+    
+    func remaindays(travels: TravelModel) -> some View {
+        var view: some View {
+            if (travels.start_date ?? Date()) < Date() {
+                Text((travels.start_date ?? Date())...Date())
+                    .foregroundStyle(.black)
+            } else {
+                Text(Date()...(travels.start_date ?? Date()))
+                    .foregroundStyle(.black)
+            }
+        }
+        return view
+    }
+    
+    func totoalDays(count: Int) -> String {
+        if count == 1 {
+            return "당일치기"
+        }
+        return "\(count - 1)박 \(count)일"
     }
 }
 
