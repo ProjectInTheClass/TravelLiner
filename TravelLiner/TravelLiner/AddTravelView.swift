@@ -13,48 +13,73 @@ struct AddTravelView: View {
     @Environment(\.dismiss) var dismiss // 모달 종료
     @State var title: String = "" // 여행 제목
     @State var img: String = "🧭" // 여행 아이콘
+    @State var startDate: Date = Date()
     @Environment(\.modelContext) private var context // swiftdata 관리
     @Query var travel: [TravelModel] // 윈도우 그룹 속 데이터 접그
     @Binding var addTravel: Bool // 홈뷰 모달 닫기용
+    var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter
+    }
     
     var body: some View {
         NavigationStack{
             VStack(alignment: .center){
                 Spacer()
-                TextField("", text: $img)
-                    .font(.system(size: 150))
-                    //.scaleEffect(10.0)
-                    .multilineTextAlignment(.center)
-                    .onReceive(Just(img), perform: { _ in
-                        if img.count > 1 {
-                            img = String(img[img.startIndex])
-                        }
-                    })
-                    .frame(width: 200, height: 200)
-                    .background {
-                        Circle()
-                            .foregroundStyle(.background)
-                            .shadow(radius: /*@START_MENU_TOKEN@*/10/*@END_MENU_TOKEN@*/)
-                    }
-                TextField("어떤 여행을 가실 건가요?", text: $title)
-                    .padding(7)
-                    .background {
-                        Capsule()
-                            .foregroundStyle(.background)
-                            .shadow(radius: 5, x: 5, y: 5)
+                
+                Divider()
+                    .frame(minHeight: 1)
+                    .overlay(Color.accentColor)
+                HStack{
+                    VStack{
+                        TextField("어떤 여행을 가실 건가요?", text: $title)
+                            .padding(.horizontal)
+                        Divider()
+                        DatePicker("여행 출발 날짜", selection: self.$startDate, displayedComponents: .date)
+                            .environment(\.locale, .init(identifier: "ko"))
                     }
                     .padding()
+                    TextField("", text: $img)
+                        .font(.system(size: 80))
+                        //.scaleEffect(10.0)
+                        .multilineTextAlignment(.center)
+                        .onReceive(Just(img), perform: { _ in
+                            if img.count > 1 {
+                                img = String(img[img.startIndex])
+                            }
+                        })
+                        .frame(width: 100, height: 100)
+                        .background {
+                            Circle()
+                                .foregroundStyle(.foreground.opacity(0.2))
+                        }
+                }
+                Divider()
+                    .frame(minHeight: 1)
+                    .overlay(Color.accentColor)
                 NavigationLink {
                     TravelPlanView(title: $title, addTravel: $addTravel, travel: travel.last ?? TravelModel(title: "error", days: [], icon: "", start_date: Date())) // 실질적인 여행 추가뷰
                 } label: {
-                    Text("계속하기")
+                    HStack{
+                        Spacer()
+                        Text("계속하기")
+                            .tint(.white)
+                            .padding(.vertical, 8)
+                        Spacer()
+                    }
+                    .background {
+                        RoundedRectangle(cornerRadius: 10)
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    .padding(20)
                 }.simultaneousGesture(TapGesture().onEnded{ //네비세이션 링크를 클릭과 동시에 실행
-                    let new_model = TravelModel(title: self.title, days: [Days(date: 1, places: [])], icon: "\(img)", start_date: Date()) // 텅빈 모델 생성
+                    let new_model = TravelModel(title: self.title, days: [Days(date: 1, places: [])], icon: "\(img)", start_date: startDate) // 텅빈 모델 생성
                     context.insert(new_model) // 윈도우 그룹 안에 TravelModel 데이터 담아줌
                 })
                 Spacer()
             }
-            .background(.secondary.opacity(0.2))
+            .background(.background)
             .navigationTitle("나의 새로운 여행 추가하기")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {
@@ -147,6 +172,12 @@ struct AddPlaceVIew: View {
     var body: some View {
         VStack{
             TextField("어디로 가실건가요?", text: $keyword)
+                .padding()
+                .background{
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(lineWidth: /*@START_MENU_TOKEN@*/1.0/*@END_MENU_TOKEN@*/)
+                }
+                .padding(.horizontal)
                 .onSubmit {
                     // 엔터치면 검색됨
                     searchPlacce.searchPlacewithKeyword(keyword: keyword, page: 1)
