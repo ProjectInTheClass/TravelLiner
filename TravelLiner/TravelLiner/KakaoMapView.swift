@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 import KakaoMapsSDK
 
 struct KakaoMapView: UIViewRepresentable {
@@ -14,6 +15,7 @@ struct KakaoMapView: UIViewRepresentable {
     @Binding var day: Int
     @Binding var tap_place: Places
     @Binding var day_old: Int
+    @Binding var points: [Places]
     //var positions: [MapPoint]
     var travel: TravelModel
     
@@ -41,6 +43,8 @@ struct KakaoMapView: UIViewRepresentable {
         }
         //MARK: 선택된 일차 감지후 poi 호출
         if self.day != self.day_old {
+            //self.kakaoSearch.route = []
+            //self.kakaoSearch.searchRoute(places: self.travel.days.filter{$0.date == self.day}.first?.places.sorted(by: {$0.sequence < $1.sequence}) ?? [])
             context.coordinator.createPois(day: self.day)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
                 // 바로 바꾸면 뷰가 그려지지 않을 순간 호출되어 에러남
@@ -48,6 +52,12 @@ struct KakaoMapView: UIViewRepresentable {
                 context.coordinator.move_whenPoiCreate()
             }
             //self.day_old = self.day
+        }
+        if !points.isEmpty {
+            context.coordinator.createRouteline(day: self.day, points: self.points)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                self.points = []
+            }
         }
     }
     
@@ -93,10 +103,6 @@ struct KakaoMapView: UIViewRepresentable {
             //인증 후 뷰 그리기
             addViews()
         }
-//        func authenticationFailed(_ errorCode: Int, desc: String) {
-//            print("error: ", errorCode)
-//        }
-        
         override init() {
             first = true
             _auth = false
@@ -153,7 +159,80 @@ struct KakaoMapView: UIViewRepresentable {
                 ])
                 manager.addPoiStyle(poiStyle)
             }
+        
+        // RouteStyleSet을 생성한다.
+        func createRouteStyleSet() {
+            let mapView = self.controller?.getView("mapview") as? KakaoMap
+            let manager = mapView?.getRouteManager()
             
+            let _ = manager?.addRouteLayer(layerID: "RouteLayer", zOrder: 0)
+            let patternImages = [UIImage(systemName: "arrowtriangle.left.fill"), UIImage(systemName: "arrowtriangle.right.fill"), UIImage(systemName: "arrowshape.up.circle.fill")]
+            
+            // StyleSet에 pattern을 추가한다.
+            let styleSet = RouteStyleSet(styleID: "routeStyleSet1")
+            styleSet.addPattern(RoutePattern(pattern: patternImages[0]!, distance: 60, symbol: nil, pinStart: false, pinEnd: false))
+//            styleSet.addPattern(RoutePattern(pattern: patternImages[1]!, distance: 6, symbol: nil, pinStart: true, pinEnd: true))
+//            styleSet.addPattern(RoutePattern(pattern: patternImages[2]!, distance: 6, symbol: UIImage(named: "route_pattern_long_airplane.png")!, pinStart: true, pinEnd: true))
+            
+            let colors = [
+                UIColor.accent
+            ]
+            
+            let strokeColors = [
+                UIColor.black
+            ]
+            
+            let patternIndex = [-1, 0, 1, 2]
+            
+            // 총 4개의 스타일을 생성한다.
+            for index in 0 ..< colors.count {
+                // 각 스타일은 1개의 표출 시작 레벨 = 0 인 PerLevelStyle을 갖는다. 즉, 전 레벨에서 동일하게 표출된다.
+                // Style의 패턴인덱스가 -1로 지정되는 경우, 패턴을 사용하지 않고 컬러만 사용한다.
+                let routeStyle = RouteStyle(styles: [PerLevelRouteStyle(width: 18, color: colors[index], strokeWidth: 4, strokeColor: strokeColors[index], level: 0, patternIndex: patternIndex[index])])
+                styleSet.addStyle(routeStyle)
+            }
+            
+            manager?.addRouteStyleSet(styleSet)
+        }
+        
+        func createRouteline(day: Int, points: [Places]) {
+            //kakaoSearch.searchRoute(places: (self.positions.days.filter({ $0.date == day }).first?.places ?? []).sorted(by: {$0.sequence < $1.sequence}))
+            let mapView = self.controller?.getView("mapview") as! KakaoMap
+            let manager = mapView.getRouteManager()
+            
+            // Route 생성을 위해 RouteLayer를 생성한다.
+            let layer = manager.getRouteLayer(layerID: "RouteLayer")/* manager.addRouteLayer(layerID: "RouteLayer", zOrder: 0)*/
+            //manager.removeRouteLayer(layerID: "RouteLayer")
+            
+            layer?.clearAllRoutes()
+            //print(layer?.layerID)
+            // Route 생성을 위한 RouteSegment 생성
+//            let points = (self.positions.days.filter({ $0.date == day }).first?.places ?? []).sorted(by: {$0.sequence < $1.sequence}).map{
+//                MapPoint(longitude: $0.longitude, latitude: $0.latitude)
+//            }
+            print(self.day)
+            let Points = points.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)}
+            let segs = RouteSegment(points: Points, styleIndex: 0)
+            //let seg = RouteSegment(points: points, styleIndex: styleIndex)
+            //segments.append(segs)
+//                let segmentPoints = route
+//                var segments: [RouteSegment] = [RouteSegment]()
+//                var styleIndex: UInt = 0
+//                for points in segmentPoints {
+//                    // 경로 포인트로 RouteSegment 생성. 사용할 스타일 인덱스도 지정한다.
+//                    let seg = RouteSegment(points: points, styleIndex: styleIndex)
+//                    segments.append(seg)
+//                    styleIndex = (styleIndex + 1) % 4
+//                }
+                
+                // Route 생성을 위해 ID, styleID, zOrder, segment를 전달한다.
+            let routeOption = RouteOptions(styleID: "routeStyleSet1", zOrder: 0)
+            routeOption.segments = [segs]
+            let routes = layer?.addRoute(option: routeOption)
+            
+            //let route = layer?.addRoute(option: <#RouteOptions#>, routeID: "routes", styleID: "routeStyleSet1", zOrder: 0, segments: segments)
+                routes?.show()
+            }
         
         func createPois(day: Int) {
             let view = controller?.getView("mapview") as! KakaoMap // 맵 뷰
@@ -251,6 +330,8 @@ struct KakaoMapView: UIViewRepresentable {
             }
         }
         
+        
+        
         func createController(_ view: KMViewContainer) {
             // kakaomap 예시와 달리 update 뷰 전에 엔진을 작동해야 뷰가 그려짐
             controller = KMController(viewContainer: view)
@@ -264,6 +345,8 @@ struct KakaoMapView: UIViewRepresentable {
             createLabelLayer()
             createPoiStyle()
             createPois(day: 1)
+            createRouteStyleSet()
+            createRouteline(day: 1, points: [])
         }
         
         var _auth: Bool

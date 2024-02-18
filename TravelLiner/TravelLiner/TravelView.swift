@@ -18,13 +18,27 @@ struct TravelView: View {
     @State var day_old: Int = 1 // 선택된 날짜
     @State var tap_place: Places = Places(name: "", longitude: 0.0, latitude: 0.0, sequence: 1)
     @State var img_seq = 0
+    @State var points: [Places] = []
     @Bindable var travel: TravelModel // 데이터
     @StateObject var searchPlacce: KakaoSearchPlace = KakaoSearchPlace() // 검색 클래스
     //var title: String
     //var position: MapPoint
     var body: some View {
         ZStack{
-            KakaoMapView(draw: $draw, tap: $tap, day: $day, tap_place: $tap_place, day_old: $day_old, travel: self.travel)
+            if !searchPlacce.route.isEmpty {
+                VStack{}
+                .onAppear(){
+                    let objs = self.searchPlacce.route.first?.sections.map{$0.guides.map{$0.map{Places(name: "", longitude: $0.x, latitude: $0.y, sequence: 0)}}} ?? []
+                    self.points = []
+                    for item in objs {
+                        for itemString in item ?? [] {
+                            self.points.append(itemString)
+                        }
+                    }
+                }
+            }
+            
+            KakaoMapView(draw: $draw, tap: $tap, day: $day, tap_place: $tap_place, day_old: $day_old, points: $points, travel: self.travel)
 //                .onTapGesture {
 //                    self.search_toggle.toggle()
 //                }
@@ -63,6 +77,10 @@ struct TravelView: View {
                                 .scaleEffect(day.date == self.day ? 1.1 : 1.0)
                                 .onTapGesture {
                                     self.day = day.date
+//                                    let origin = travel.days.filter{ $0.date == day.date}.first?.places.sorted(by: {$0.sequence < $1.sequence}).first ?? Places(name: "", longitude: 0.0, latitude: 0.0, sequence: 1)
+//                                    let destination = travel.days.filter{ $0.date == day.date}.first?.places.sorted(by: {$0.sequence < $1.sequence}).last ?? Places(name: "", longitude: 0.0, latitude: 0.0, sequence: 1)
+//                                    let wayPoints = travel.days.filter{ $0.date == day.date}.first?.places.sorted(by: {$0.sequence < $1.sequence}).removeFirst()
+                                    self.searchPlacce.searchRoute(places: travel.days.filter{ $0.date == day.date}.first?.places.sorted(by: {$0.sequence < $1.sequence}) ?? [])
                                 }
                         }
                         Spacer()
@@ -255,6 +273,10 @@ struct TravelView: View {
                 Text(travel.title)
             })
         }
+    }
+    
+    func searchRoute() {
+        self
     }
 }
 
