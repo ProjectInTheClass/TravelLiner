@@ -44,6 +44,7 @@ struct TravelView: View {
 //                }
                 .onAppear(){
                     self.draw = true
+                    self.searchPlacce.searchRoute(places: travel.days.filter{ $0.date == self.day}.first?.places.sorted(by: {$0.sequence < $1.sequence}) ?? [])
                 }
                 .onDisappear(){
                     self.draw = false

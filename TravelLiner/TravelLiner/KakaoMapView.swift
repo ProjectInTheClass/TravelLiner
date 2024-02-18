@@ -166,7 +166,9 @@ struct KakaoMapView: UIViewRepresentable {
             let manager = mapView?.getRouteManager()
             
             let _ = manager?.addRouteLayer(layerID: "RouteLayer", zOrder: 0)
-            let patternImages = [UIImage(systemName: "arrowtriangle.left.fill"), UIImage(systemName: "arrowtriangle.right.fill"), UIImage(systemName: "arrowshape.up.circle.fill")]
+            let poiImage = UIImage(systemName: "arrowtriangle.up.fill")?.withTintColor(UIColor(red: 0.32, green: 0.68, blue: 0.95, alpha: 1.00))
+            let poiResize = resizeImage(image: poiImage!, targetSize: CGSizeMake(20.0, 20.0))
+            let patternImages = [poiResize, UIImage(systemName: "arrowtriangle.right.fill"), UIImage(systemName: "arrowshape.up.circle.fill")]
             
             // StyleSet에 pattern을 추가한다.
             let styleSet = RouteStyleSet(styleID: "routeStyleSet1")
@@ -175,7 +177,7 @@ struct KakaoMapView: UIViewRepresentable {
 //            styleSet.addPattern(RoutePattern(pattern: patternImages[2]!, distance: 6, symbol: UIImage(named: "route_pattern_long_airplane.png")!, pinStart: true, pinEnd: true))
             
             let colors = [
-                UIColor.accent
+                UIColor(red: 0.68, green: 0.87, blue: 1.00, alpha: 1.00)
             ]
             
             let strokeColors = [
@@ -188,7 +190,7 @@ struct KakaoMapView: UIViewRepresentable {
             for index in 0 ..< colors.count {
                 // 각 스타일은 1개의 표출 시작 레벨 = 0 인 PerLevelStyle을 갖는다. 즉, 전 레벨에서 동일하게 표출된다.
                 // Style의 패턴인덱스가 -1로 지정되는 경우, 패턴을 사용하지 않고 컬러만 사용한다.
-                let routeStyle = RouteStyle(styles: [PerLevelRouteStyle(width: 18, color: colors[index], strokeWidth: 4, strokeColor: strokeColors[index], level: 0, patternIndex: patternIndex[index])])
+                let routeStyle = RouteStyle(styles: [PerLevelRouteStyle(width: 18, color: colors[index], strokeWidth: 4, strokeColor: strokeColors[index], level: 0, patternIndex: 0)])
                 styleSet.addStyle(routeStyle)
             }
             
