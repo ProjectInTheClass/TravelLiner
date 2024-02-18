@@ -10,6 +10,7 @@ import SwiftData
 import KakaoMapsSDK
 
 struct TravelView: View {
+    @State private var showModal: Bool = false
     @State var draw: Bool = true // 카카오맵 그리기 그리고 지우기 확인용
     @State var tap: Bool = false // 지도 누름 감지
     @State var search_toggle: Bool = false // 돋보기 검색 누름 확인
@@ -225,26 +226,30 @@ struct TravelView: View {
                 }
                 Spacer()
                 HStack{
-                    Button {
-                        
-                    } label: {
-                        Image(systemName: "line.3.horizontal")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 30, height: 30)
-                            .bold()
-                            .foregroundStyle(.foreground)
-                            .padding(15)
-                            .background{
-                                Circle()
-                                    .foregroundStyle(.background)
-                                    .shadow(radius: 7, x: 5, y: 5)
-                                Circle()
-                                    .stroke(lineWidth: 2.0)
-                                    .foregroundStyle(Color.black)
-                            }
-                            .padding()
-                    }
+                    Button(action: {
+                                    self.showModal = true // 버튼 클릭 시 모달 뷰를 표시하도록 상태 변수 변경
+                                }) {
+                                    Image(systemName: "line.3.horizontal")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 30, height: 30)
+                                        .bold()
+                                        .foregroundStyle(.foreground)
+                                        .padding(15)
+                                        .background{
+                                            Circle()
+                                                .foregroundStyle(.background)
+                                                .shadow(radius: 7, x: 5, y: 5)
+                                            Circle()
+                                                .stroke(lineWidth: 2.0)
+                                                .foregroundStyle(Color.black)
+                                        }
+                                        .padding()
+                                }
+                                .sheet(isPresented: $showModal) { // showModal 상태 변수에 따라 모달 뷰 표시
+                                    TravelListView(days: travel.days) // 여기에 모달로 표시하고자 하는 뷰를 넣습니다.
+                                }
+
                     Spacer()
                     Button {
                         self.search_toggle.toggle()

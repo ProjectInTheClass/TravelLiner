@@ -21,6 +21,7 @@
 		039E20C42B6D259700517534 /* Preview_sampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039E20C32B6D259700517534 /* Preview_sampleData.swift */; };
 		03B10FCD2B749F5000F36210 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 03B10FCC2B749F5000F36210 /* README.md */; };
 		03B10FCF2B74B63400F36210 /* Swipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B10FCE2B74B63400F36210 /* Swipe.swift */; };
+		0C8203812B822B870017916B /* TravelListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8203802B822B870017916B /* TravelListView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +40,7 @@
 		039E20C32B6D259700517534 /* Preview_sampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preview_sampleData.swift; sourceTree = "<group>"; };
 		03B10FCC2B749F5000F36210 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		03B10FCE2B74B63400F36210 /* Swipe.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Swipe.swift; sourceTree = "<group>"; };
+		0C8203802B822B870017916B /* TravelListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelListView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +83,7 @@
 				039E20B72B6D112800517534 /* KakaoSearchPlace.swift */,
 				039E20B62B6D112800517534 /* KakaoMapView.swift */,
 				039E20B82B6D112800517534 /* TravelView.swift */,
+				0C8203802B822B870017916B /* TravelListView.swift */,
 				03B10FCE2B74B63400F36210 /* Swipe.swift */,
 				039E20B92B6D112800517534 /* DataModel.swift */,
 				039E20C32B6D259700517534 /* Preview_sampleData.swift */,
@@ -182,6 +185,7 @@
 				039E20A62B6D0F5100517534 /* TravelLinerApp.swift in Sources */,
 				039E20BD2B6D112800517534 /* KakaoSearchPlace.swift in Sources */,
 				039E20BE2B6D112800517534 /* TravelView.swift in Sources */,
+				0C8203812B822B870017916B /* TravelListView.swift in Sources */,
 				039E20C12B6D112800517534 /* HomeView.swift in Sources */,
 				039E20C02B6D112800517534 /* AddTravelView.swift in Sources */,
 				039E20BF2B6D112800517534 /* DataModel.swift in Sources */,
@@ -327,6 +331,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -357,6 +362,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
