@@ -82,7 +82,7 @@ class KakaoSearchPlace: ObservableObject {
     }
     
     func searchRoute(places: [Places], priority: String = "RECOMMEND", avoid: String = "", road_details: Bool = false, alternatives: Bool = false, car_type: Int = 1, car_fuel: String = "GASOLINE", summary: Bool = false) {
-        
+        self.route = []
         if places.count < 2 {
             return
         }
