@@ -6,13 +6,18 @@
 //
 
 import SwiftUI
+import UIKit
 import KakaoMapsSDK
 
 struct KakaoMapView: UIViewRepresentable {
     @Binding var draw: Bool
     @Binding var tap: Bool
-    var position: MapPoint
-    var spot: String
+    @Binding var day: Int
+    @Binding var tap_place: Places
+    @Binding var day_old: Int
+    @Binding var points: [Places]
+    //var positions: [MapPoint]
+    var travel: TravelModel
     
     func makeUIView(context: Context) -> KMViewContainer {
         let view: KMViewContainer = KMViewContainer()
@@ -28,8 +33,7 @@ struct KakaoMapView: UIViewRepresentable {
         if draw {
             context.coordinator.controller?.startEngine()
             context.coordinator.controller?.startRendering()
-            context.coordinator.position = self.position
-            context.coordinator.spot = self.spot
+            context.coordinator.positions = self.travel
             //let msg = context.coordinator.controller?.getStateDescMessage()
             //print("////////////////")
             //print(msg ?? "메세지")
@@ -37,10 +41,28 @@ struct KakaoMapView: UIViewRepresentable {
             context.coordinator.controller?.stopEngine()
             context.coordinator.controller?.stopRendering()
         }
+        //MARK: 선택된 일차 감지후 poi 호출
+        if self.day != self.day_old {
+            //self.kakaoSearch.route = []
+            //self.kakaoSearch.searchRoute(places: self.travel.days.filter{$0.date == self.day}.first?.places.sorted(by: {$0.sequence < $1.sequence}) ?? [])
+            context.coordinator.createPois(day: self.day)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                // 바로 바꾸면 뷰가 그려지지 않을 순간 호출되어 에러남
+                self.day_old = self.day
+                context.coordinator.move_whenPoiCreate()
+            }
+            //self.day_old = self.day
+        }
+        if !points.isEmpty {
+            context.coordinator.createRouteline(day: self.day, points: self.points)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                self.points = []
+            }
+        }
     }
     
     func makeCoordinator() -> kakaoMapCoordinator {
-        return kakaoMapCoordinator(tap: $tap, spot: spot, position: position)
+        return kakaoMapCoordinator(tap: $tap, positions: self.travel, day: $day, tap_place: $tap_place)
     }
     
     static func dismantleUIView(_ uiView: KMViewContainer, coordinator: kakaoMapCoordinator) {
@@ -49,34 +71,62 @@ struct KakaoMapView: UIViewRepresentable {
     
     class kakaoMapCoordinator: NSObject, MapControllerDelegate {
         
+        func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage {
+           let size = image.size
+           
+           let widthRatio  = targetSize.width  / size.width
+           let heightRatio = targetSize.height / size.height
+           
+           // Figure out what our orientation is, and use that to form the rectangle
+           var newSize: CGSize
+           if(widthRatio > heightRatio) {
+               newSize = CGSize(width: size.width * heightRatio, height: size.height * heightRatio)
+           } else {
+               newSize = CGSize(width: size.width * widthRatio,  height: size.height * widthRatio)
+           }
+           
+           // This is the rect that we've calculated out and this is what is actually used below
+           let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
+           
+           // Actually do the resizing to the rect using the ImageContext stuff
+           UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+           image.draw(in: rect)
+           let newImage = UIGraphicsGetImageFromCurrentImageContext()
+           UIGraphicsEndImageContext()
+           
+           return newImage!
+       }
+        
         func authenticationSucceeded() {
+            // 인증 감지
             print("성공")
+            //인증 후 뷰 그리기
             addViews()
         }
-//        func authenticationFailed(_ errorCode: Int, desc: String) {
-//            print("error: ", errorCode)
-//        }
-        
         override init() {
             first = true
             _auth = false
-            position = MapPoint(longitude: 126.942250, latitude: 33.458528)
+            positions = TravelModel(title: "", days: [], icon: "", start_date: Date())
             self._tap = .constant(false)
-            spot = ""
+            self._day = .constant(0)
+            self._tap_place = .constant(Places(name: "", longitude: 0.0, latitude: 0.0, sequence: 1))
             super.init()
         }
-        init(tap: Binding<Bool>, spot: String, position: MapPoint) {
+        init(tap: Binding<Bool>, positions: TravelModel, day: Binding<Int>, tap_place: Binding<Places>) {
             first = true
             _auth = false
-            self.spot = spot
-            self.position = position
+            self.positions = positions
             self._tap = tap
+            self._day = day
+            self._tap_place = tap_place
         }
         
         func createLabelLayer() {
+            //Poi 레이어 그려줌
+            //Poi가 지도에 그려지는 마크(맵핀임)
                 let view = controller?.getView("mapview") as! KakaoMap
                 let manager = view.getLabelManager()
-                let layerOption = LabelLayerOptions(layerID: "PoiLayer", competitionType: .none, competitionUnit: .symbolFirst, orderType: .rank, zOrder: 0)
+                let layerOption = LabelLayerOptions(layerID: "PoiLayer", competitionType: .none, competitionUnit: .symbolFirst, orderType: .rank, zOrder: 10000)
                 let _ = manager.addLabelLayer(option: layerOption)
             }
             
@@ -87,46 +137,144 @@ struct KakaoMapView: UIViewRepresentable {
                 
                 // PoiBadge는 스타일에도 추가될 수 있다. 이렇게 추가된 Badge는 해당 스타일이 적용될 때 함께 그려진다.
                 let noti1 = PoiBadge(badgeID: "badge1", image: UIImage(systemName: "swift"), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 0)
-                let iconStyle1 = PoiIconStyle(symbol: UIImage(systemName: "mapin"), anchorPoint: CGPoint(x: 0.0, y: 0.5),transition: PoiTransition(entrance: .scale, exit: .scale) ,badges: [])
+                // 줌 안되었을 때 그려지는 icon
+                let poiImage = UIImage(named: "POI")
+                let poiResize = resizeImage(image: poiImage!, targetSize: CGSizeMake(200.0, 200.0))
+                let iconStyle1 = PoiIconStyle(symbol: poiImage, anchorPoint: CGPoint(x: 0.5, y: 0.5),transition: PoiTransition(entrance: .scale, exit: .scale) ,badges: [])
+                //iconStyle1.symbol?.size = CGSize(width: 50, height: 50)
                 let noti2 = PoiBadge(badgeID: "badge2", image: UIImage(systemName: "circle"), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 0)
-                let iconStyle2 = PoiIconStyle(symbol: UIImage(systemName: "mappin.and.ellipse")?.withTintColor(.systemRed), anchorPoint: CGPoint(x: 0.5, y: 0.5), badges: [])
+                // 일정 이상 줌하면 그려지는 icon
+                let iconStyle2 = PoiIconStyle(symbol: poiImage/*?.withTintColor(.systemRed)*/, anchorPoint: CGPoint(x: 0.5, y: 0.5), badges: [])
                 
-                let red = TextStyle(fontSize: 20, fontColor: UIColor.white, strokeThickness: 2, strokeColor: UIColor.red)
+                let red = TextStyle(fontSize: 40, fontColor: UIColor.black, strokeThickness: 2, strokeColor: UIColor.white)
                 let blue = TextStyle(fontSize: 40, fontColor: UIColor.black, strokeThickness: 2, strokeColor: UIColor.white)
                 
                 // PoiTextStyle 생성
-                let textStyle1 = PoiTextStyle(textLineStyles: [PoiTextLineStyle(textStyle: red)])
-                let textStyle2 = PoiTextStyle(textLineStyles: [PoiTextLineStyle(textStyle: blue)])
+                let textStyle1 = PoiTextStyle(textLineStyles: [PoiTextLineStyle(textStyle: red)]) // 줌 안되었을 때 그려지는 스타일
+                let textStyle2 = PoiTextStyle(textLineStyles: [PoiTextLineStyle(textStyle: blue)]) // 일정 이상 줌하면 그려지는 스타일
                 
                 let poiStyle = PoiStyle(styleID: "PerLevelStyle", styles: [
-                    PerLevelPoiStyle(iconStyle: iconStyle1, textStyle: textStyle1, level: 5),
-                    PerLevelPoiStyle(iconStyle: iconStyle2, textStyle: textStyle2, level: 12)
+                    PerLevelPoiStyle(iconStyle: iconStyle1, textStyle: textStyle1, level: 5), // 줌 안되었을 때 그려지는 스타일
+                    //PerLevelPoiStyle(iconStyle: iconStyle2, textStyle: textStyle2, level: 12) // 일정 이상 줌하면 그려지는 스타일
                 ])
                 manager.addPoiStyle(poiStyle)
             }
-            
         
-            func createPois() {
-                let view = controller?.getView("mapview") as! KakaoMap
-                let manager = view.getLabelManager()
-                let layer = manager.getLabelLayer(layerID: "PoiLayer")
-                let poiOption = PoiOptions(styleID: "PerLevelStyle")
-                poiOption.rank = 0
-                poiOption.clickable = true
-                poiOption.addText(PoiText(text: self.spot, styleIndex: 0))
-                let poi1 = layer?.addPoi(option:poiOption, at: position)
-                let  _ = poi1?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
-                // Poi 개별 Badge추가. 즉, 아래에서 생성된 Poi는 Style에 빌트인되어있는 badge와, Poi가 개별적으로 가지고 있는 Badge를 갖게 된다.
-                //let badge = PoiBadge(badgeID: "noti", image: UIImage(systemName: "swift"), offset: CGPoint(x: 0, y: 0), zOrder: 1)
-                //poi1?.addBadge(badge)
-                poi1?.show()
-                //poi1?.showBadge(badgeID: "noti")
+        // RouteStyleSet을 생성한다.
+        func createRouteStyleSet() {
+            let mapView = self.controller?.getView("mapview") as? KakaoMap
+            let manager = mapView?.getRouteManager()
+            
+            let _ = manager?.addRouteLayer(layerID: "RouteLayer", zOrder: 0)
+            let patternImages = [UIImage(systemName: "arrowtriangle.left.fill"), UIImage(systemName: "arrowtriangle.right.fill"), UIImage(systemName: "arrowshape.up.circle.fill")]
+            
+            // StyleSet에 pattern을 추가한다.
+            let styleSet = RouteStyleSet(styleID: "routeStyleSet1")
+            styleSet.addPattern(RoutePattern(pattern: patternImages[0]!, distance: 60, symbol: nil, pinStart: false, pinEnd: false))
+//            styleSet.addPattern(RoutePattern(pattern: patternImages[1]!, distance: 6, symbol: nil, pinStart: true, pinEnd: true))
+//            styleSet.addPattern(RoutePattern(pattern: patternImages[2]!, distance: 6, symbol: UIImage(named: "route_pattern_long_airplane.png")!, pinStart: true, pinEnd: true))
+            
+            let colors = [
+                UIColor.accent
+            ]
+            
+            let strokeColors = [
+                UIColor.black
+            ]
+            
+            let patternIndex = [-1, 0, 1, 2]
+            
+            // 총 4개의 스타일을 생성한다.
+            for index in 0 ..< colors.count {
+                // 각 스타일은 1개의 표출 시작 레벨 = 0 인 PerLevelStyle을 갖는다. 즉, 전 레벨에서 동일하게 표출된다.
+                // Style의 패턴인덱스가 -1로 지정되는 경우, 패턴을 사용하지 않고 컬러만 사용한다.
+                let routeStyle = RouteStyle(styles: [PerLevelRouteStyle(width: 18, color: colors[index], strokeWidth: 4, strokeColor: strokeColors[index], level: 0, patternIndex: patternIndex[index])])
+                styleSet.addStyle(routeStyle)
             }
+            
+            manager?.addRouteStyleSet(styleSet)
+        }
+        
+        func createRouteline(day: Int, points: [Places]) {
+            //kakaoSearch.searchRoute(places: (self.positions.days.filter({ $0.date == day }).first?.places ?? []).sorted(by: {$0.sequence < $1.sequence}))
+            let mapView = self.controller?.getView("mapview") as! KakaoMap
+            let manager = mapView.getRouteManager()
+            
+            // Route 생성을 위해 RouteLayer를 생성한다.
+            let layer = manager.getRouteLayer(layerID: "RouteLayer")/* manager.addRouteLayer(layerID: "RouteLayer", zOrder: 0)*/
+            //manager.removeRouteLayer(layerID: "RouteLayer")
+            
+            layer?.clearAllRoutes()
+            //print(layer?.layerID)
+            // Route 생성을 위한 RouteSegment 생성
+//            let points = (self.positions.days.filter({ $0.date == day }).first?.places ?? []).sorted(by: {$0.sequence < $1.sequence}).map{
+//                MapPoint(longitude: $0.longitude, latitude: $0.latitude)
+//            }
+            print(self.day)
+            let Points = points.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)}
+            let segs = RouteSegment(points: Points, styleIndex: 0)
+            //let seg = RouteSegment(points: points, styleIndex: styleIndex)
+            //segments.append(segs)
+//                let segmentPoints = route
+//                var segments: [RouteSegment] = [RouteSegment]()
+//                var styleIndex: UInt = 0
+//                for points in segmentPoints {
+//                    // 경로 포인트로 RouteSegment 생성. 사용할 스타일 인덱스도 지정한다.
+//                    let seg = RouteSegment(points: points, styleIndex: styleIndex)
+//                    segments.append(seg)
+//                    styleIndex = (styleIndex + 1) % 4
+//                }
+                
+                // Route 생성을 위해 ID, styleID, zOrder, segment를 전달한다.
+            let routeOption = RouteOptions(styleID: "routeStyleSet1", zOrder: 0)
+            routeOption.segments = [segs]
+            let routes = layer?.addRoute(option: routeOption)
+            
+            //let route = layer?.addRoute(option: <#RouteOptions#>, routeID: "routes", styleID: "routeStyleSet1", zOrder: 0, segments: segments)
+                routes?.show()
+            }
+        
+        func createPois(day: Int) {
+            let view = controller?.getView("mapview") as! KakaoMap // 맵 뷰
+            let manager = view.getLabelManager()
+            let layer = manager.getLabelLayer(layerID: "PoiLayer") // poi 레이어 가져옴
+            layer?.clearAllItems() // 일차가 달라지면 해당 일차 핀만 그리기 위해서 먼저 다 지움
+            let poiOption = PoiOptions(styleID: "PerLevelStyle")
+            poiOption.rank = 0 // poi스타일별 랭크
+            poiOption.clickable = true  //클릭 이벤트 설정
+            poiOption.addText(PoiText(text: "name", styleIndex: 0)) // 텍스트
+            print(day, "//////////////////////////")
+            for position in (self.positions.days.filter({ $0.date == day }).first?.places ?? []).sorted(by: {$0.sequence < $1.sequence}) { //선택된 일차의 장소 리스트 가져옴
+                let poi = layer?.addPoi(option:poiOption, at: MapPoint(longitude: position.longitude, latitude: position.latitude)) // Poi 추가
+                // Poi 랭크가 0 이라 그 위에 그려지기 위해서 zOrder 1임
+                let badge_back = PoiBadge(badgeID: "num0", image: UIImage(systemName: "circle.fill")?.withTintColor(.white), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 1)
+                let badge = PoiBadge(badgeID: "num", image: UIImage(systemName: "\(position.sequence).circle.fill")?.withTintColor(.systemPink), offset: CGPoint(x: 0.9, y: 0.1), zOrder: 2)
+                poi?.addBadge(badge)
+                poi?.addBadge(badge_back)
+                //Poi의 글자 그려줌
+                self.tapPoint[poi?.itemID ?? "itemID"] = position
+                poi?.changeTextAndStyle(texts: [PoiText(text: position.name, styleIndex: 0)], styleID: "PerLevelStyle")
+                // poi 클릭되면 이벤트 실행
+                let  poi_event = poi?.addPoiTappedEventHandler(target: self, handler: kakaoMapCoordinator.tapHandler)
+                poi?.show()
+                poi?.showBadges(badgeIDs: ["num", "num0"])
+                }
+            }
+        
         
         func tapHandler(_ param: PoiInteractionEventParam) {
             self.tap = true
+            let cameraPos = self.tapPoint[param.poiItem.itemID]
+            self.tap_place = cameraPos!
+            let mapView: KakaoMap? = controller?.getView("mapview") as? KakaoMap
+            let cameraUpdate: CameraUpdate = CameraUpdate.make(target: MapPoint(longitude: cameraPos?.longitude ?? 0.0, latitude: cameraPos?.latitude ?? 0.0), mapView: mapView!)
+            mapView?.moveCamera(cameraUpdate)
         }
-        
+        func move_whenPoiCreate() {
+            let mapView: KakaoMap? = controller?.getView("mapview") as? KakaoMap
+            let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.positions.days.filter{$0.date == self.day}.first?.places.filter{$0.sequence == 1}.first.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)} ?? MapPoint(longitude: 126.942250, latitude: 33.458528), mapView: mapView!)
+            mapView?.moveCamera(cameraUpdate)
+        }
         // 인증 실패시 호출.
         func authenticationFailed(_ errorCode: Int, desc: String) {
             print("error code: \(errorCode)")
@@ -161,7 +309,7 @@ struct KakaoMapView: UIViewRepresentable {
         }
         
         func addViews() {
-            let defaultPosition: MapPoint = self.position
+            let defaultPosition: MapPoint = self.positions.days.filter{$0.date == self.day}.first?.places.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)}.first ?? MapPoint(longitude: 126.942250, latitude: 33.458528)
             let mapviwInfo: MapviewInfo = MapviewInfo(viewName: "mapview", viewInfoName: "map", defaultPosition: defaultPosition, defaultLevel: 7)
             
             if controller?.addView(mapviwInfo) == Result.OK {
@@ -169,17 +317,23 @@ struct KakaoMapView: UIViewRepresentable {
             }
         }
         
+       
+        
         func containerDidResized(_ size: CGSize) {
             let mapView: KakaoMap? = controller?.getView("mapview") as? KakaoMap
             mapView?.viewRect = CGRect(origin: CGPoint.zero, size: size)
             if first {
-                let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.position, mapView: mapView!)
+                //초기화시 카레라 위치 정해줌 첫 장소 위치로 설정함
+                let cameraUpdate: CameraUpdate = CameraUpdate.make(target: self.positions.days.filter{$0.date == self.day}.first?.places.filter{$0.sequence == 1}.first.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)} ?? MapPoint(longitude: 126.942250, latitude: 33.458528), mapView: mapView!)
                 mapView?.moveCamera(cameraUpdate)
                 first = false
             }
         }
         
+        
+        
         func createController(_ view: KMViewContainer) {
+            // kakaomap 예시와 달리 update 뷰 전에 엔진을 작동해야 뷰가 그려짐
             controller = KMController(viewContainer: view)
             //controller?.proMotionSupport = true
             controller?.delegate = self
@@ -190,18 +344,19 @@ struct KakaoMapView: UIViewRepresentable {
             print(controller?.getStateDescMessage() ?? "")
             createLabelLayer()
             createPoiStyle()
-            createPois()
+            createPois(day: 1)
+            createRouteStyleSet()
+            createRouteline(day: 1, points: [])
         }
         
         var _auth: Bool
         var controller: KMController?
         var first: Bool
-        var position: MapPoint
-        var spot: String
+        var positions: TravelModel
+        var tapPoint: [String : Places] = [:]
         @Binding var tap: Bool
+        @Binding var day: Int
+        @Binding var tap_place: Places
     }
 }
 
-#Preview {
-    KakaoMapView(draw: .constant(true), tap: .constant(true), position: MapPoint(longitude: 126.942250, latitude: 33.458528), spot: "성산일출봉")
-}
