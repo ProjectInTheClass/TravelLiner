@@ -20,6 +20,7 @@ struct TravelListView: View {
     @State var days: [Days] // 여행의 각 일차 정보
     @State private var showDeleteAlert = false // 알림창 표시 여부
     @State private var indicesToDelete: (dayIndex: Int, placeIndex: Int)? // 삭제할 day의 인덱스와 place의 인덱스
+    @State private var isEditing = false // 편집 모드 상태
     
     var body: some View {
         ScrollView {
@@ -32,18 +33,24 @@ struct TravelListView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                     Spacer()
+                    Button(action: {
+                        isEditing.toggle() // 편집 모드 토글
+                    }) {
+                        Text(isEditing ? "완료" : "편집")
+                    }
                 }
                 .padding()
                 
                 LazyVStack(spacing: 16) {
-                    ForEach(days.indices, id: \.self) { index in
-                        DaySectionView(dayIndex: index, days: $days, onDeletePlace: { placeIndex in
-                            self.indicesToDelete = (dayIndex: index, placeIndex: placeIndex)
-                            self.showDeleteAlert = true // 알림창 표시
-                        })
+                    LazyVStack(spacing: 16) {
+                        ForEach(Array(days.enumerated()), id: \.element) { index, day in
+                            DaySectionView(dayIndex: index, days: $days, onDeletePlace: { placeIndex in
+                                self.indicesToDelete = (dayIndex: index, placeIndex: placeIndex)
+                                        self.showDeleteAlert = true // 알림창 표시
+                            }, isEditing: isEditing)
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
-                    
                 }
             }
         }
@@ -69,40 +76,40 @@ struct DaySectionView: View {
     var dayIndex: Int
     @Binding var days: [Days]
     var onDeletePlace: (Int) -> Void
+    var isEditing: Bool // 편집 모드 상태 추가
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("\((days[dayIndex]).date) 일차")
-                .font(.headline)
+            Text("\(dayIndex + 1) 일차")
+                    .font(.headline)
                 .padding(13)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(UIColor.systemGray5)) // 시스템 그레이 색상 사용
+                .background(Color(UIColor.systemGray5))
                 .cornerRadius(10)
-                .padding(.bottom, -4) // 섹션 헤더와 항목 사이의 간격
+                .padding(.bottom, -4)
             
             ForEach(days[dayIndex].places.indices, id: \.self) { placeIndex in
-                        PlaceRow(
-                            placeNumber: placeIndex + 1,
-                            placeName: days[dayIndex].places[placeIndex].name,
-                            onDelete: {
-                                onDeletePlace(placeIndex)
-                            },
-                            onMoveUp: {
-                                if placeIndex > 0 {
-                                    var updatedPlaces = days[dayIndex].places
-                                    updatedPlaces.swapAt(placeIndex, placeIndex - 1)
-                                    days[dayIndex].places = updatedPlaces
-                                }
-                            },
-                            onMoveDown: {
-                                if placeIndex < days[dayIndex].places.count - 1 {
-                                    var updatedPlaces = days[dayIndex].places
-                                    updatedPlaces.swapAt(placeIndex, placeIndex + 1)
-                                    days[dayIndex].places = updatedPlaces
-                                }
-                            }
-                        )
-                    }
+                PlaceRow(
+                    placeNumber: placeIndex + 1,
+                    placeName: days[dayIndex].places[placeIndex].name,
+                    onDelete: {
+                        onDeletePlace(placeIndex)
+                    },
+                    onMoveUp: {
+                        if placeIndex > 0 {
+                            days[dayIndex].places.swapAt(placeIndex, placeIndex - 1)
+                            days = days.map { $0 } // SwiftUI에 상태 변경 알림
+                        }
+                    },
+                    onMoveDown: {
+                        if placeIndex < days[dayIndex].places.count - 1 {
+                            days[dayIndex].places.swapAt(placeIndex, placeIndex + 1)
+                            days = days.map { $0 } // SwiftUI에 상태 변경 알림
+                        }
+                    },
+                    isEditing: isEditing
+                )
+            }
             .padding(.horizontal, 13)
             .padding(.vertical, 5)
         }
@@ -119,6 +126,7 @@ struct PlaceRow: View {
     var onDelete: () -> Void
     var onMoveUp: () -> Void
     var onMoveDown: () -> Void
+    var isEditing: Bool
     
     var body: some View {
         HStack {
@@ -136,23 +144,25 @@ struct PlaceRow: View {
             
             Spacer()
             
-            Button(action: onMoveUp) {
-                Image(systemName: "arrow.up")
-                    .foregroundColor(.blue)
+            if isEditing { // 편집 모드일 때만 버튼 보여주기
+//                Button(action: onMoveUp) {
+//                    Image(systemName: "arrow.up")
+//                        .foregroundColor(.blue)
+//                }
+//                .padding(.trailing, 5)
+//                
+//                Button(action: onMoveDown) {
+//                    Image(systemName: "arrow.down")
+//                        .foregroundColor(.blue)
+//                }
+//                .padding(.trailing, 5)
+                
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+                .padding(.trailing, 5)
             }
-            .padding(.trailing, 5)
-            
-            Button(action: onMoveDown) {
-                Image(systemName: "arrow.down")
-                    .foregroundColor(.blue)
-            }
-            .padding(.trailing, 5)
-            
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
-            }
-            .padding(.trailing, 5)
         }
         .padding(.vertical, 10)
         .background(Color(.white))
