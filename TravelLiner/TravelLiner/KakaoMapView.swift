@@ -54,6 +54,7 @@ struct KakaoMapView: UIViewRepresentable {
             //self.day_old = self.day
         }
         if !points.isEmpty {
+            //context.coordinator.createRouteStyleSet(day: self.day)
             context.coordinator.createRouteline(day: self.day, points: self.points)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
                 self.points = []
@@ -161,40 +162,54 @@ struct KakaoMapView: UIViewRepresentable {
             }
         
         // RouteStyleSet을 생성한다.
-        func createRouteStyleSet() {
+        func createRouteStyleSet(day: Int) {
             let mapView = self.controller?.getView("mapview") as? KakaoMap
             let manager = mapView?.getRouteManager()
             
             let _ = manager?.addRouteLayer(layerID: "RouteLayer", zOrder: 0)
-            let poiImage = UIImage(systemName: "arrowtriangle.up.fill")?.withTintColor(UIColor(red: 0.32, green: 0.68, blue: 0.95, alpha: 1.00))
-            let poiResize = resizeImage(image: poiImage!, targetSize: CGSizeMake(20.0, 20.0))
-            let patternImages = [poiResize, UIImage(systemName: "arrowtriangle.right.fill"), UIImage(systemName: "arrowshape.up.circle.fill")]
+            //let patternImages = [poiResize, UIImage(systemName: "arrowtriangle.right.fill"), UIImage(systemName: "arrowshape.up.circle.fill")]
             
-            // StyleSet에 pattern을 추가한다.
-            let styleSet = RouteStyleSet(styleID: "routeStyleSet1")
-            styleSet.addPattern(RoutePattern(pattern: patternImages[0]!, distance: 60, symbol: nil, pinStart: false, pinEnd: false))
+
 //            styleSet.addPattern(RoutePattern(pattern: patternImages[1]!, distance: 6, symbol: nil, pinStart: true, pinEnd: true))
 //            styleSet.addPattern(RoutePattern(pattern: patternImages[2]!, distance: 6, symbol: UIImage(named: "route_pattern_long_airplane.png")!, pinStart: true, pinEnd: true))
             
-            let colors = [
-                UIColor(red: 0.68, green: 0.87, blue: 1.00, alpha: 1.00)
+            let colors = [ // 색 여기 추가하세요
+                UIColor.red,
+                UIColor.orange,
+                UIColor.yellow,
+                UIColor.green,
+                UIColor.blue,
+                UIColor.cyan,
+                UIColor.purple
             ]
-            
+            let patternColors = [
+                UIColor.orange,
+                UIColor.yellow,
+                UIColor.red,
+                UIColor.blue,
+                UIColor.cyan,
+                UIColor.purple,
+                UIColor.green
+            ]
             let strokeColors = [
                 UIColor.black
             ]
             
-            let patternIndex = [-1, 0, 1, 2]
             
-            // 총 4개의 스타일을 생성한다.
-            for index in 0 ..< colors.count {
-                // 각 스타일은 1개의 표출 시작 레벨 = 0 인 PerLevelStyle을 갖는다. 즉, 전 레벨에서 동일하게 표출된다.
-                // Style의 패턴인덱스가 -1로 지정되는 경우, 패턴을 사용하지 않고 컬러만 사용한다.
-                let routeStyle = RouteStyle(styles: [PerLevelRouteStyle(width: 18, color: colors[index], strokeWidth: 4, strokeColor: strokeColors[index], level: 0, patternIndex: 0)])
+            // StyleSet에 pattern을 추가한다.
+            for dayIndex in 0...day {
+                let patternImage = UIImage(systemName: "arrowtriangle.up.fill")?.withTintColor(patternColors[0]/*patternColors[dayIndex]로 변경하세요*/)
+                let patternResize = resizeImage(image: patternImage!, targetSize: CGSizeMake(20.0, 20.0))
+                let styleSet = RouteStyleSet(styleID: "routeStyleSet\(dayIndex)")
+                styleSet.addPattern(RoutePattern(pattern: patternResize, distance: 60, symbol: nil, pinStart: false, pinEnd: false))
+                
+                /*strokeColors[dayIndex]로 변경하세요*/
+                let routeStyle = RouteStyle(styles: [PerLevelRouteStyle(width: 16, color: colors[dayIndex], strokeWidth: 3, strokeColor: strokeColors[0], level: 0, patternIndex: 0)])
                 styleSet.addStyle(routeStyle)
+                
+                manager?.addRouteStyleSet(styleSet)
             }
             
-            manager?.addRouteStyleSet(styleSet)
         }
         
         func createRouteline(day: Int, points: [Places]) {
@@ -212,7 +227,6 @@ struct KakaoMapView: UIViewRepresentable {
 //            let points = (self.positions.days.filter({ $0.date == day }).first?.places ?? []).sorted(by: {$0.sequence < $1.sequence}).map{
 //                MapPoint(longitude: $0.longitude, latitude: $0.latitude)
 //            }
-            print(self.day)
             let Points = points.map{MapPoint(longitude: $0.longitude, latitude: $0.latitude)}
             let segs = RouteSegment(points: Points, styleIndex: 0)
             //let seg = RouteSegment(points: points, styleIndex: styleIndex)
@@ -228,7 +242,7 @@ struct KakaoMapView: UIViewRepresentable {
 //                }
                 
                 // Route 생성을 위해 ID, styleID, zOrder, segment를 전달한다.
-            let routeOption = RouteOptions(styleID: "routeStyleSet1", zOrder: 0)
+            let routeOption = RouteOptions(styleID: "routeStyleSet\(day-1)", zOrder: 0)
             routeOption.segments = [segs]
             let routes = layer?.addRoute(option: routeOption)
             
@@ -347,7 +361,8 @@ struct KakaoMapView: UIViewRepresentable {
             createLabelLayer()
             createPoiStyle()
             createPois(day: 1)
-            createRouteStyleSet()
+            createRouteStyleSet(day: positions.days.count-1)
+            print(positions.days.count-1, "!")
             createRouteline(day: 1, points: [])
         }
         
