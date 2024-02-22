@@ -173,37 +173,38 @@ struct KakaoMapView: UIViewRepresentable {
 //            styleSet.addPattern(RoutePattern(pattern: patternImages[1]!, distance: 6, symbol: nil, pinStart: true, pinEnd: true))
 //            styleSet.addPattern(RoutePattern(pattern: patternImages[2]!, distance: 6, symbol: UIImage(named: "route_pattern_long_airplane.png")!, pinStart: true, pinEnd: true))
             
-            //MARK: - 은수님 경로색 여기 추가하세요
             let colors = [ // 색 여기 추가하세요
-                UIColor(red: 0.68, green: 0.87, blue: 1.00, alpha: 1.00),
-                UIColor.black,
                 UIColor.red,
+                UIColor.orange,
+                UIColor.yellow,
                 UIColor.green,
                 UIColor.blue,
-                UIColor.brown,
                 UIColor.cyan,
-                UIColor.darkGray
+                UIColor.purple
             ]
-            //MARK: - 은수님 경로안 화살표 색 여기 추가하세요
             let patternColors = [
-                UIColor(red: 0.32, green: 0.68, blue: 0.95, alpha: 1.00)
+                UIColor.orange,
+                UIColor.yellow,
+                UIColor.red,
+                UIColor.blue,
+                UIColor.cyan,
+                UIColor.purple,
+                UIColor.green
             ]
-            //MARK: - 은수님 경로 아웃라인 여기 추가하세요
             let strokeColors = [
                 UIColor.black
             ]
-            // 위 색 array 개수 동일하게 맞추세요
             
             
             // StyleSet에 pattern을 추가한다.
             for dayIndex in 0...day {
-                //MARK: - 은수님 주석 보고 변경하세요
                 let patternImage = UIImage(systemName: "arrowtriangle.up.fill")?.withTintColor(patternColors[0]/*patternColors[dayIndex]로 변경하세요*/)
                 let patternResize = resizeImage(image: patternImage!, targetSize: CGSizeMake(20.0, 20.0))
                 let styleSet = RouteStyleSet(styleID: "routeStyleSet\(dayIndex)")
                 styleSet.addPattern(RoutePattern(pattern: patternResize, distance: 60, symbol: nil, pinStart: false, pinEnd: false))
                 
-                let routeStyle = RouteStyle(styles: [PerLevelRouteStyle(width: 16, color: colors[dayIndex], strokeWidth: 3, strokeColor: strokeColors[0]/*strokeColors[dayIndex]로 변경하세요*/, level: 0, patternIndex: 0)])
+                /*strokeColors[dayIndex]로 변경하세요*/
+                let routeStyle = RouteStyle(styles: [PerLevelRouteStyle(width: 16, color: colors[dayIndex], strokeWidth: 3, strokeColor: strokeColors[0], level: 0, patternIndex: 0)])
                 styleSet.addStyle(routeStyle)
                 
                 manager?.addRouteStyleSet(styleSet)
